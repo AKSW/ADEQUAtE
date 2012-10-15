@@ -29,6 +29,6 @@ public class ColoredDirectedGraph extends DefaultDirectedGraph<Node, ColoredEdge
 		return result;
 	}
 	
-
+	public ColoredDirectedGraph toGeneralizedGraph(){return null;};
 
 }

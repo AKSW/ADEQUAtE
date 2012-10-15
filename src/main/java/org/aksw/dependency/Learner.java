@@ -24,6 +24,7 @@ import org.aksw.dependency.converter.DependencyTree2GraphConverter;
 import org.aksw.dependency.converter.SPARQLQuery2GraphConverter;
 import org.aksw.dependency.graph.ColoredDirectedGraph;
 import org.aksw.dependency.graph.ColoredDirectedSubgraph;
+import org.aksw.dependency.graph.DependencyNode;
 import org.aksw.dependency.graph.Node;
 import org.aksw.dependency.util.GraphUtils;
 import org.aksw.dependency.util.Matcher;
@@ -59,6 +60,8 @@ public class Learner {
 
 	private SortedMap<Integer, String> id2QuestionMap = new TreeMap<Integer, String>();
 	private SortedMap<Integer, String> id2SPARQLQueryMap = new TreeMap<Integer, String>();
+	
+	private String endpointURL = "http://live.dbpedia.org/sparql";
 	
 	private void loadTrainData() {
 		logger.info("Reading file containing queries and answers...");
@@ -200,7 +203,7 @@ public class Learner {
 	}
 	
 	private ColoredDirectedGraph generateSPARQLQueryGraph(String queryString){
-		SPARQLQuery2GraphConverter sparqlConverter = new SPARQLQuery2GraphConverter();
+		SPARQLQuery2GraphConverter sparqlConverter = new SPARQLQuery2GraphConverter(endpointURL);
 		Query query = QueryFactory.create(queryString, Syntax.syntaxARQ);
 		List<Var> projectVars = query.getProjectVars();//TODO How to handle it, when there are more than 1 variables?
 		ColoredDirectedGraph directedGraph = sparqlConverter.getGraph(query);
@@ -214,7 +217,7 @@ public class Learner {
 		
 		//generate the directed graph for the SPARQL query
 		ColoredDirectedGraph graph2 = generateSPARQLQueryGraph(queryString);
-		GraphUtils.paint(graph2, "SPARQL Query Graph");
+		GraphUtils.paint(graph2.toGeneralizedGraph(), "SPARQL Query Graph");
 		
 		//compute all subgraphs for the first graph
 		Collection<ColoredDirectedSubgraph> subgraphs1 = GraphUtils.getSubgraphs(graph1);
@@ -249,7 +252,7 @@ public class Learner {
 				} else {
 					String label = getLabel(URI.create(sparqlNodeLabel));
 					for(Node node1 : graph1.vertexSet()){
-						if(node1.getPosTag() != null){
+						if(node1 instanceof DependencyNode && ((DependencyNode)node1).getPosTag() != null){
 							System.out.println("? " + label + "==" + node1.getLabel());
 						}
 					}

@@ -2,28 +2,18 @@ package org.aksw.dependency.graph;
 
 public class Node {
 	
-	private String label;
-	private String posTag;
+	protected String label;
 	
 	public Node(String label) {
-		this(label, null);
-	}
-	
-	public Node(String label, String posTag) {
 		this.label = label;
-		this.posTag = posTag;
 	}
 	
 	public String getLabel() {
 		return label;
 	}
 	
-	public String getPosTag() {
-		return posTag;
-	}
-	
 	public String toString() {
-		return label + (posTag != null ? ("/" + posTag) : "");
+		return label;
 	}
 
 	@Override
@@ -50,6 +40,8 @@ public class Node {
 			return false;
 		return true;
 	}
+	
+	public Node asGeneralizedNode(){return null;}
 	
 	
 

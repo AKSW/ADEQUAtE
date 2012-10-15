@@ -10,6 +10,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.aksw.dependency.graph.ColoredDirectedGraph;
+import org.aksw.dependency.graph.DependencyNode;
 import org.aksw.dependency.graph.Node;
 
 import com.hp.hpl.jena.query.QueryExecution;
@@ -38,9 +39,8 @@ public class StableMarriage implements Matcher{
 		}
 		List<Node> nodes2 = new ArrayList<Node>();
 		for(Node node : graph2.vertexSet()){
-			String tag = node.getPosTag();
 			String label = node.getLabel();
-			if(tag != null){
+			if(node instanceof DependencyNode && ((DependencyNode)node).getPosTag() != null){
 				nodes2.add(node);
 			} else {
 				if(label.startsWith("prep_")){

@@ -2,9 +2,15 @@ package org.aksw.dependency.converter;
 
 import java.util.Set;
 
+import org.aksw.dependency.graph.ClassNode;
 import org.aksw.dependency.graph.ColoredDirectedGraph;
 import org.aksw.dependency.graph.ColoredEdge;
 import org.aksw.dependency.graph.Node;
+import org.aksw.dependency.graph.PropertyNode;
+import org.aksw.dependency.graph.ResourceNode;
+import org.aksw.dependency.graph.SPARQLGraph;
+import org.aksw.dependency.graph.VariableNode;
+import org.aksw.dependency.util.SPARQLUtil;
 import org.aksw.dependency.util.TriplePatternExtractor;
 
 import com.hp.hpl.jena.graph.Triple;
@@ -15,18 +21,24 @@ import com.hp.hpl.jena.query.Syntax;
 public class SPARQLQuery2GraphConverter {
 	
 	private static final String COLOR = "white";
+	
+	private String endpointURL;
+	
+	public SPARQLQuery2GraphConverter(String endpointURL) {
+		this.endpointURL = endpointURL;
+	}
 
 	public ColoredDirectedGraph getGraph(Query query){
-		ColoredDirectedGraph graph = new ColoredDirectedGraph();
+		ColoredDirectedGraph graph = new SPARQLGraph();
 		
 		TriplePatternExtractor extractor = new TriplePatternExtractor();
 		Set<Triple> triples = extractor.extractTriplePattern(query);
 		
 		int i=0;
 		for(Triple t : triples){
-			Node subject = new Node(t.getSubject().toString());
-			Node predicate = new Node(t.getPredicate().toString());
-			Node object = new Node(t.getObject().toString());
+			Node subject = getNode(t.getSubject());
+			Node predicate = getNode(t.getPredicate());
+			Node object = getNode(t.getObject());
 			
 			graph.addVertex(subject);
 			graph.addVertex(predicate);
@@ -42,5 +54,23 @@ public class SPARQLQuery2GraphConverter {
 	
 	public ColoredDirectedGraph getGraph(String query){
 		return getGraph(QueryFactory.create(query, Syntax.syntaxARQ));
+	}
+	
+	public Node getNode(com.hp.hpl.jena.graph.Node node){
+		if(node.isVariable()){
+			return new VariableNode(node.toString());
+		} else if(node.isURI()){
+			String uri = node.getURI();
+			if(SPARQLUtil.isClass(endpointURL, uri)){
+				return new ClassNode(uri);
+			} else if(SPARQLUtil.isProperty(endpointURL, uri)){
+				return new PropertyNode(uri);
+			} else {
+				return new ResourceNode(uri);
+			}
+		} else if(node.isLiteral()){
+			
+		} 
+		return null;
 	}
 }

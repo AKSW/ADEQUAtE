@@ -7,6 +7,8 @@ import java.util.Map;
 
 import org.aksw.dependency.graph.ColoredDirectedGraph;
 import org.aksw.dependency.graph.ColoredEdge;
+import org.aksw.dependency.graph.DependencyGraph;
+import org.aksw.dependency.graph.DependencyNode;
 import org.aksw.dependency.graph.Node;
 
 import edu.stanford.nlp.ling.IndexedWord;
@@ -17,7 +19,7 @@ import edu.stanford.nlp.trees.semgraph.SemanticGraphEdge;
 public class DependencyTree2GraphConverter {
 	
 	public ColoredDirectedGraph getGraph(SemanticGraph dependencyGraph){
-		ColoredDirectedGraph graph = new ColoredDirectedGraph();
+		ColoredDirectedGraph graph = new DependencyGraph();
 
 		int i = 0;
 	   for(SemanticGraphEdge edge : dependencyGraph.edgeListSorted()){
@@ -27,8 +29,8 @@ public class DependencyTree2GraphConverter {
 		   
 		   String color = "black";
 		   
-		   Node source = new Node(sourceWord.word(), sourceWord.tag());
-		   Node target = new Node(targetWord.word(), targetWord.tag());
+		   Node source = new DependencyNode(sourceWord.word(), sourceWord.tag());
+		   Node target = new DependencyNode(targetWord.word(), targetWord.tag());
 		   Node relationNode = new Node(relation.toString());
 		   
 		   graph.addVertex(source);
@@ -43,7 +45,7 @@ public class DependencyTree2GraphConverter {
 	}
 	
 	public ColoredDirectedGraph getGraph(SemanticGraph dependencyGraph, boolean pruned){
-		ColoredDirectedGraph graph = new ColoredDirectedGraph();
+		ColoredDirectedGraph graph = new DependencyGraph();
 
 		int i = 0;
 		
@@ -58,8 +60,8 @@ public class DependencyTree2GraphConverter {
 		   if(!pruned || (pruned && !ignore.contains(targetWord.tag()))){
 			   String color = "black";
 			   
-			   Node source = new Node(sourceWord.word(), sourceWord.tag());
-			   Node target = new Node(targetWord.word(), targetWord.tag());
+			   Node source = new DependencyNode(sourceWord.word(), sourceWord.tag());
+			   Node target = new DependencyNode(targetWord.word(), targetWord.tag());
 			   String relationString = relation.toString();
 			   Integer cnt = relationOccurenceCount.get(relationString);
 			   if(cnt == null){

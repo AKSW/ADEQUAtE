@@ -33,5 +33,7 @@ public class ColoredDirectedSubgraph extends DirectedSubgraph<Node, ColoredEdge>
 		result = prime * result + ((edgeSet() == null) ? 0 : edgeSet().hashCode());
 		return result;
 	}
+	
+	public ColoredDirectedGraph toGeneralizedGraph(){return null;};
 
 }
