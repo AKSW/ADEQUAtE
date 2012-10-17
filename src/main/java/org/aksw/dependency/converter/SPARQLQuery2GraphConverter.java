@@ -12,14 +12,17 @@ import org.aksw.dependency.graph.SPARQLGraph;
 import org.aksw.dependency.graph.VariableNode;
 import org.aksw.dependency.util.SPARQLUtil;
 import org.aksw.dependency.util.TriplePatternExtractor;
+import org.apache.log4j.Logger;
 
 import com.hp.hpl.jena.graph.Triple;
 import com.hp.hpl.jena.query.Query;
 import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.Syntax;
+import com.hp.hpl.jena.vocabulary.RDF;
 
 public class SPARQLQuery2GraphConverter {
 	
+	private static final Logger logger = Logger.getLogger(SPARQLQuery2GraphConverter.class);
 	private static final String COLOR = "white";
 	
 	private String endpointURL;
@@ -34,7 +37,6 @@ public class SPARQLQuery2GraphConverter {
 		TriplePatternExtractor extractor = new TriplePatternExtractor();
 		Set<Triple> triples = extractor.extractTriplePattern(query);
 		
-		int i=0;
 		for(Triple t : triples){
 			Node subject = getNode(t.getSubject());
 			Node predicate = getNode(t.getPredicate());
@@ -44,11 +46,9 @@ public class SPARQLQuery2GraphConverter {
 			graph.addVertex(predicate);
 			graph.addVertex(object);
 			
-			graph.addEdge(subject, predicate, new ColoredEdge("edge"+i++, COLOR));
-			graph.addEdge(predicate, object, new ColoredEdge("edge"+i++, COLOR));
-			
+			graph.addEdge(subject, predicate, new ColoredEdge("edge", COLOR));
+			graph.addEdge(predicate, object, new ColoredEdge("edge", COLOR));			
 		}
-		
 		return graph;
 	}
 	
@@ -61,12 +61,16 @@ public class SPARQLQuery2GraphConverter {
 			return new VariableNode(node.toString());
 		} else if(node.isURI()){
 			String uri = node.getURI();
-			if(SPARQLUtil.isClass(endpointURL, uri)){
-				return new ClassNode(uri);
-			} else if(SPARQLUtil.isProperty(endpointURL, uri)){
-				return new PropertyNode(uri);
+			if(node.matches(RDF.type.asNode())){
+				return new PropertyNode(uri, uri);
 			} else {
-				return new ResourceNode(uri);
+				if(SPARQLUtil.isClass(endpointURL, uri)){
+					return new ClassNode(uri, uri);
+				} else if(SPARQLUtil.isProperty(endpointURL, uri)){
+					return new PropertyNode(uri);
+				} else {
+					return new ResourceNode(uri);
+				}
 			}
 		} else if(node.isLiteral()){
 			

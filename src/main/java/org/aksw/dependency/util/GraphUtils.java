@@ -8,12 +8,13 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -27,7 +28,10 @@ import javax.swing.SwingUtilities;
 import org.aksw.dependency.graph.ColoredDirectedGraph;
 import org.aksw.dependency.graph.ColoredDirectedSubgraph;
 import org.aksw.dependency.graph.ColoredEdge;
+import org.aksw.dependency.graph.DependencySubgraph;
 import org.aksw.dependency.graph.Node;
+import org.aksw.dependency.graph.SPARQLGraph;
+import org.aksw.dependency.graph.SPARQLSubgraph;
 import org.apache.batik.dom.GenericDOMImplementation;
 import org.apache.batik.svggen.SVGGraphics2D;
 import org.apache.batik.svggen.SVGGraphics2DIOException;
@@ -70,100 +74,289 @@ public class GraphUtils {
 		return null;
 	}
 	
-	private static ColoredDirectedSubgraph postorderTraversal(DirectedGraph<Node, ColoredEdge> graph, Node source, ColoredEdge sedge, Collection<ColoredDirectedSubgraph> allSubgraphs){
-		  Set<ColoredEdge> outgoingEdges = graph.outgoingEdgesOf(source);
-		  if(outgoingEdges.size() > 1){
-			  Map<ColoredEdge, ColoredDirectedSubgraph> map = new HashMap<ColoredEdge, ColoredDirectedSubgraph>();
-			  ColoredDirectedSubgraph sub;
-			  Set<Node> vertexSubset = new HashSet<Node>();
-			  Set<ColoredEdge> edgeSubset = new HashSet<ColoredEdge>();
-			  
-			  //node
-			  vertexSubset.add(source);
-			  allSubgraphs.add(new ColoredDirectedSubgraph(graph, vertexSubset, edgeSubset));
-			  
-			  //node+parent
-			  if(sedge != null){
-				  vertexSubset = new HashSet<Node>();
-				  edgeSubset = new HashSet<ColoredEdge>();
-				  vertexSubset.add(source);
-				  vertexSubset.add(graph.getEdgeSource(sedge));
-				  edgeSubset.add(sedge);
-				  allSubgraphs.add(new ColoredDirectedSubgraph(graph, vertexSubset, edgeSubset));
-			  }
-			  
-			  //node+subgraph
-			  System.out.println(source);
-			  System.out.println(outgoingEdges);
-			  for(ColoredEdge edge : outgoingEdges){
-				  Node target = graph.getEdgeTarget(edge);
-				  sub = postorderTraversal(graph, target, edge, allSubgraphs);
-				  vertexSubset = new HashSet<Node>();
-				  vertexSubset.add(source);
-				  vertexSubset.addAll(sub.vertexSet());
-				  edgeSubset = new HashSet<ColoredEdge>();
-				  edgeSubset.addAll(sub.edgeSet());
-				  edgeSubset.add(edge);
-				  sub = new ColoredDirectedSubgraph(graph, vertexSubset, edgeSubset);
-				  allSubgraphs.add(sub);
-				  map.put(edge, sub);
-			  }
-			  
-			  //node+subgraph+subgraph
-			  for(Entry<ColoredEdge, ColoredDirectedSubgraph> entry1 : map.entrySet()){
-				  ColoredDirectedSubgraph sub1 = entry1.getValue();
-				  for(Entry<ColoredEdge, ColoredDirectedSubgraph> entry2 : map.entrySet()){
-					  if(!entry1.equals(entry2)){
-						  ColoredDirectedSubgraph sub2 = entry2.getValue();
-						  
-						  vertexSubset = new HashSet<Node>();
-						  vertexSubset.addAll(sub1.vertexSet());
-						  vertexSubset.addAll(sub2.vertexSet());
-						  edgeSubset = new HashSet<ColoredEdge>();
-						  edgeSubset.addAll(sub1.edgeSet());
-						  edgeSubset.addAll(sub2.edgeSet());
-						  
-						  vertexSubset.add(source);
-						  edgeSubset.add(entry1.getKey());
-						  edgeSubset.add(entry2.getKey());
-						  
-						  allSubgraphs.add(new ColoredDirectedSubgraph(graph, vertexSubset, edgeSubset));
-					  }
-				  }
-			  }
-			  //node+all subgraphs
-			  vertexSubset = new HashSet<Node>();
-			  edgeSubset = new HashSet<ColoredEdge>();
-			  for(Entry<ColoredEdge, ColoredDirectedSubgraph> entry : map.entrySet()){
-				  ColoredDirectedSubgraph g = entry.getValue();
-				  vertexSubset.addAll(g.vertexSet());
-				  edgeSubset.addAll(g.edgeSet());
-				  edgeSubset.add(entry.getKey());
-			  }
-			  vertexSubset.add(source);
-			  return new ColoredDirectedSubgraph(graph, vertexSubset, edgeSubset);
-		  } else {
-			  Set<Node> vertexSubset = new HashSet<Node>();
-			  vertexSubset.add(source);
-			  Set<ColoredEdge> edgeSubset = new HashSet<ColoredEdge>();
-			  ColoredDirectedSubgraph sub = new ColoredDirectedSubgraph(graph, vertexSubset, edgeSubset);
-			  allSubgraphs.add(sub);
-			  if(outgoingEdges.size() == 1){
-				  ColoredEdge edge = outgoingEdges.iterator().next();
-				  Node target = graph.getEdgeTarget(edge);
-				  ColoredDirectedSubgraph sub2 = postorderTraversal(graph, target, edge, allSubgraphs);
-				  vertexSubset = new HashSet<Node>();
-				  vertexSubset.add(source);
-				  vertexSubset.addAll(sub2.vertexSet());
-				  edgeSubset = new HashSet<ColoredEdge>();
-				  edgeSubset.addAll(sub2.edgeSet());
-				  edgeSubset.add(edge);
-				  sub = new ColoredDirectedSubgraph(graph, vertexSubset, edgeSubset);
-				  allSubgraphs.add(sub);
-			  } 
-			  return sub;
+//	private static ColoredDirectedSubgraph postorderTraversal(DirectedGraph<Node, ColoredEdge> graph, Node source, ColoredEdge sedge, Collection<ColoredDirectedSubgraph> allSubgraphs){
+//		  Set<ColoredEdge> outgoingEdges = graph.outgoingEdgesOf(source);
+//		  if(outgoingEdges.size() > 1){
+//			  Map<ColoredEdge, ColoredDirectedSubgraph> map = new HashMap<ColoredEdge, ColoredDirectedSubgraph>();
+//			  ColoredDirectedSubgraph sub;
+//			  Set<Node> vertexSubset = new HashSet<Node>();
+//			  Set<ColoredEdge> edgeSubset = new HashSet<ColoredEdge>();
+//			  
+//			  //node
+//			  vertexSubset.add(source);
+//			  if(graph instanceof SPARQLGraph){
+//				  allSubgraphs.add(new SPARQLSubgraph(graph, vertexSubset, edgeSubset));
+//			  } else {
+//				  allSubgraphs.add(new DependencySubgraph(graph, vertexSubset, edgeSubset));
+//			  }
+//			  
+//			  //node+parent
+//			  if(sedge != null){
+//				  vertexSubset = new HashSet<Node>();
+//				  edgeSubset = new HashSet<ColoredEdge>();
+//				  vertexSubset.add(source);
+//				  vertexSubset.add(graph.getEdgeSource(sedge));
+//				  edgeSubset.add(sedge);
+//				  if(graph instanceof SPARQLGraph){
+//					  allSubgraphs.add(new SPARQLSubgraph(graph, vertexSubset, edgeSubset));
+//				  } else {
+//					  allSubgraphs.add(new DependencySubgraph(graph, vertexSubset, edgeSubset));
+//				  }
+//			  }
+//			  
+//			  //node+subgraph
+//			  for(ColoredEdge edge : outgoingEdges){
+//				  Node target = graph.getEdgeTarget(edge);
+//				  sub = postorderTraversal(graph, target, edge, allSubgraphs);
+//				  vertexSubset = new HashSet<Node>();
+//				  vertexSubset.add(source);
+//				  vertexSubset.addAll(sub.vertexSet());
+//				  edgeSubset = new HashSet<ColoredEdge>();
+//				  edgeSubset.addAll(sub.edgeSet());
+//				  edgeSubset.add(edge);
+//				  if(graph instanceof SPARQLGraph){
+//					  sub = new SPARQLSubgraph(graph, vertexSubset, edgeSubset);
+//				  } else {
+//					  sub = new DependencySubgraph(graph, vertexSubset, edgeSubset);
+//				  }
+//				  allSubgraphs.add(sub);
+//				  map.put(edge, sub);
+//			  }
+//			  
+//			  //node+subgraph+subgraph
+//			  for(Entry<ColoredEdge, ColoredDirectedSubgraph> entry1 : map.entrySet()){
+//				  ColoredDirectedSubgraph sub1 = entry1.getValue();
+//				  for(Entry<ColoredEdge, ColoredDirectedSubgraph> entry2 : map.entrySet()){
+//					  if(!entry1.equals(entry2)){
+//						  ColoredDirectedSubgraph sub2 = entry2.getValue();
+//						  
+//						  vertexSubset = new HashSet<Node>();
+//						  vertexSubset.addAll(sub1.vertexSet());
+//						  vertexSubset.addAll(sub2.vertexSet());
+//						  edgeSubset = new HashSet<ColoredEdge>();
+//						  edgeSubset.addAll(sub1.edgeSet());
+//						  edgeSubset.addAll(sub2.edgeSet());
+//						  
+//						  vertexSubset.add(source);
+//						  edgeSubset.add(entry1.getKey());
+//						  edgeSubset.add(entry2.getKey());
+//						  
+//						  if(graph instanceof SPARQLGraph){
+//							  allSubgraphs.add(new SPARQLSubgraph(graph, vertexSubset, edgeSubset));
+//						  } else {
+//							  allSubgraphs.add(new DependencySubgraph(graph, vertexSubset, edgeSubset));
+//						  }
+//					  }
+//				  }
+//			  }
+//			  //node+all subgraphs
+//			  vertexSubset = new HashSet<Node>();
+//			  edgeSubset = new HashSet<ColoredEdge>();
+//			  for(Entry<ColoredEdge, ColoredDirectedSubgraph> entry : map.entrySet()){
+//				  ColoredDirectedSubgraph g = entry.getValue();
+//				  vertexSubset.addAll(g.vertexSet());
+//				  edgeSubset.addAll(g.edgeSet());
+//				  edgeSubset.add(entry.getKey());
+//			  }
+//			  vertexSubset.add(source);
+//			  if(graph instanceof SPARQLGraph){
+//				  return new SPARQLSubgraph(graph, vertexSubset, edgeSubset);
+//			  } else {
+//				  return new DependencySubgraph(graph, vertexSubset, edgeSubset);
+//			  }
+//		  } else {
+//			  Set<Node> vertexSubset = new HashSet<Node>();
+//			  vertexSubset.add(source);
+//			  Set<ColoredEdge> edgeSubset = new HashSet<ColoredEdge>();
+//			  ColoredDirectedSubgraph sub = new ColoredDirectedSubgraph(graph, vertexSubset, edgeSubset);
+//			  allSubgraphs.add(sub);
+//			  if(outgoingEdges.size() == 1){
+//				  ColoredEdge edge = outgoingEdges.iterator().next();
+//				  Node target = graph.getEdgeTarget(edge);
+//				  ColoredDirectedSubgraph sub2 = postorderTraversal(graph, target, edge, allSubgraphs);
+//				  vertexSubset = new HashSet<Node>();
+//				  vertexSubset.add(source);
+//				  vertexSubset.addAll(sub2.vertexSet());
+//				  edgeSubset = new HashSet<ColoredEdge>();
+//				  edgeSubset.addAll(sub2.edgeSet());
+//				  edgeSubset.add(edge);
+//				  if(graph instanceof SPARQLGraph){
+//					  sub = new SPARQLSubgraph(graph, vertexSubset, edgeSubset);
+//				  } else {
+//					  sub = new DependencySubgraph(graph, vertexSubset, edgeSubset);
+//				  }
+//				  allSubgraphs.add(sub);
+//			  } 
+//			  return sub;
+//		
+//		  }
+//	}
+	
+//	private static ColoredDirectedSubgraph postorderTraversal(DirectedGraph<Node, ColoredEdge> graph, Node source, ColoredEdge sedge, Collection<ColoredDirectedSubgraph> allSubgraphs){
+//		  Set<ColoredEdge> outgoingEdges = graph.outgoingEdgesOf(source);
+//		  if(outgoingEdges.size() > 1){
+//			  Map<ColoredEdge, ColoredDirectedSubgraph> map = new HashMap<ColoredEdge, ColoredDirectedSubgraph>();
+//			  ColoredDirectedSubgraph sub;
+//			  Set<Node> vertexSubset = new HashSet<Node>();
+//			  Set<ColoredEdge> edgeSubset = new HashSet<ColoredEdge>();
+//			  
+//			  //node
+//			  vertexSubset.add(source);
+//			  allSubgraphs.add(new ColoredDirectedSubgraph(graph, vertexSubset, edgeSubset));
+//			  
+//			  //node+parent
+//			  if(sedge != null){
+//				  vertexSubset = new HashSet<Node>();
+//				  edgeSubset = new HashSet<ColoredEdge>();
+//				  vertexSubset.add(source);
+//				  vertexSubset.add(graph.getEdgeSource(sedge));
+//				  edgeSubset.add(sedge);
+//				  allSubgraphs.add(new ColoredDirectedSubgraph(graph, vertexSubset, edgeSubset));
+//			  }
+//			  
+//			  //node+subgraph
+//			  for(ColoredEdge edge : outgoingEdges){
+//				  Node target = graph.getEdgeTarget(edge);
+//				  sub = postorderTraversal(graph, target, edge, allSubgraphs);
+//				  vertexSubset = new HashSet<Node>();
+//				  vertexSubset.add(source);
+//				  vertexSubset.addAll(sub.vertexSet());
+//				  edgeSubset = new HashSet<ColoredEdge>();
+//				  edgeSubset.addAll(sub.edgeSet());
+//				  edgeSubset.add(edge);
+//				  sub = new ColoredDirectedSubgraph(graph, vertexSubset, edgeSubset);
+//				  allSubgraphs.add(sub);
+//				  map.put(edge, sub);
+//			  }
+//			  
+//			  //node+subgraph+subgraph
+//			  for(Entry<ColoredEdge, ColoredDirectedSubgraph> entry1 : map.entrySet()){
+//				  ColoredDirectedSubgraph sub1 = entry1.getValue();
+//				  for(Entry<ColoredEdge, ColoredDirectedSubgraph> entry2 : map.entrySet()){
+//					  if(!entry1.equals(entry2)){
+//						  ColoredDirectedSubgraph sub2 = entry2.getValue();
+//						  
+//						  vertexSubset = new HashSet<Node>();
+//						  vertexSubset.addAll(sub1.vertexSet());
+//						  vertexSubset.addAll(sub2.vertexSet());
+//						  edgeSubset = new HashSet<ColoredEdge>();
+//						  edgeSubset.addAll(sub1.edgeSet());
+//						  edgeSubset.addAll(sub2.edgeSet());
+//						  
+//						  vertexSubset.add(source);
+//						  edgeSubset.add(entry1.getKey());
+//						  edgeSubset.add(entry2.getKey());
+//						  
+//						  allSubgraphs.add(new ColoredDirectedSubgraph(graph, vertexSubset, edgeSubset));
+//					  }
+//				  }
+//			  }
+//			  //node+all subgraphs
+//			  vertexSubset = new HashSet<Node>();
+//			  edgeSubset = new HashSet<ColoredEdge>();
+//			  for(Entry<ColoredEdge, ColoredDirectedSubgraph> entry : map.entrySet()){
+//				  ColoredDirectedSubgraph g = entry.getValue();
+//				  vertexSubset.addAll(g.vertexSet());
+//				  edgeSubset.addAll(g.edgeSet());
+//				  edgeSubset.add(entry.getKey());
+//			  }
+//			  vertexSubset.add(source);
+//			  return new ColoredDirectedSubgraph(graph, vertexSubset, edgeSubset);
+//		  } else {
+//			  Set<Node> vertexSubset = new HashSet<Node>();
+//			  vertexSubset.add(source);
+//			  Set<ColoredEdge> edgeSubset = new HashSet<ColoredEdge>();
+//			  ColoredDirectedSubgraph sub = new ColoredDirectedSubgraph(graph, vertexSubset, edgeSubset);
+//			  allSubgraphs.add(sub);
+//			  if(outgoingEdges.size() == 1){
+//				  ColoredEdge edge = outgoingEdges.iterator().next();
+//				  Node target = graph.getEdgeTarget(edge);
+//				  ColoredDirectedSubgraph sub2 = postorderTraversal(graph, target, edge, allSubgraphs);
+//				  vertexSubset = new HashSet<Node>();
+//				  vertexSubset.add(source);
+//				  vertexSubset.addAll(sub2.vertexSet());
+//				  edgeSubset = new HashSet<ColoredEdge>();
+//				  edgeSubset.addAll(sub2.edgeSet());
+//				  edgeSubset.add(edge);
+//				  sub = new ColoredDirectedSubgraph(graph, vertexSubset, edgeSubset);
+//				  allSubgraphs.add(sub);
+//			  } 
+//			  return sub;
+//		
+//		  }
+//	}
+	
+	private static Set<ColoredDirectedSubgraph> postorderTraversal(DirectedGraph<Node, ColoredEdge> graph, Node source,
+			ColoredEdge sedge, Collection<ColoredDirectedSubgraph> allSubgraphs) {
+		Set<ColoredDirectedSubgraph> newSubgraphs = new HashSet<ColoredDirectedSubgraph>();
+		Set<Node> vertexSubset = new HashSet<Node>();
+		vertexSubset.add(source);
+		Set<ColoredEdge> edgeSubset = new HashSet<ColoredEdge>();
+		ColoredDirectedSubgraph sub;
+		if(graph instanceof SPARQLGraph){
+			sub = new SPARQLSubgraph(graph, vertexSubset, edgeSubset);
+		} else {
+			sub = new DependencySubgraph(graph, vertexSubset, edgeSubset);
+		}
 		
-		  }
+		allSubgraphs.add(sub);
+		Set<ColoredEdge> outgoingEdges = graph.outgoingEdgesOf(source);
+		for (ColoredEdge edge : outgoingEdges) {
+			Set<ColoredDirectedSubgraph> subgraphs = postorderTraversal(graph, graph.getEdgeTarget(edge), edge, allSubgraphs);
+			for (ColoredDirectedSubgraph s : subgraphs) {
+				ColoredDirectedSubgraph merged = connect(sub, s, edge);
+				allSubgraphs.add(merged);
+				newSubgraphs.add(merged);
+			}
+		}
+		
+		Set<ColoredDirectedSubgraph> tmp = new HashSet<ColoredDirectedSubgraph>();
+		for (ColoredDirectedSubgraph s1 : newSubgraphs) {
+			ColoredDirectedSubgraph merged;
+			for (ColoredDirectedSubgraph s2 : newSubgraphs) {
+				if(!s1.equals(s2)){
+					tmp.add(merge(s1, s2));
+				}
+			}
+		}
+		newSubgraphs.addAll(findAllFlat(newSubgraphs));
+		newSubgraphs.add(sub);
+
+		if(sedge == null){
+			allSubgraphs.addAll(newSubgraphs);
+		}
+		System.out.println(source);
+		return newSubgraphs;
+	}
+	
+	private static ColoredDirectedSubgraph merge(ColoredDirectedSubgraph g1, ColoredDirectedSubgraph g2){
+		Set<Node> vertexSubset = new HashSet<Node>();
+		Set<ColoredEdge> edgeSubset = new HashSet<ColoredEdge>();
+		vertexSubset.addAll(g1.vertexSet());
+		vertexSubset.addAll(g2.vertexSet());
+		edgeSubset.addAll(g1.edgeSet());
+		edgeSubset.addAll(g2.edgeSet());
+		if(g1 instanceof SPARQLSubgraph){
+			return new SPARQLSubgraph(g1.getBase(), vertexSubset, edgeSubset);
+		} else {
+			return new DependencySubgraph(g1.getBase(), vertexSubset, edgeSubset);
+		}
+		
+	}
+	
+	private static ColoredDirectedSubgraph connect(ColoredDirectedSubgraph g1, ColoredDirectedSubgraph g2, ColoredEdge edge){
+		Set<Node> vertexSubset = new HashSet<Node>();
+		Set<ColoredEdge> edgeSubset = new HashSet<ColoredEdge>();
+		vertexSubset.addAll(g1.vertexSet());
+		vertexSubset.addAll(g2.vertexSet());
+		edgeSubset.addAll(g1.edgeSet());
+		edgeSubset.addAll(g2.edgeSet());
+		edgeSubset.add(edge);
+		if(g1 instanceof SPARQLSubgraph){
+			return new SPARQLSubgraph(g1.getBase(), vertexSubset, edgeSubset);
+		} else {
+			return new DependencySubgraph(g1.getBase(), vertexSubset, edgeSubset);
+		}
 	}
 	
 	public static <T extends ColoredDirectedGraph> SortedSet<T> sort(Collection<T> graphs){
@@ -249,6 +442,54 @@ public class GraphUtils {
 		
 	    
 	   frame.pack();
+	}
+	
+	public static Set<ColoredDirectedSubgraph> findAllFlat(Set<ColoredDirectedSubgraph> in) {
+		Set<ColoredDirectedSubgraph> out = new HashSet<ColoredDirectedSubgraph>();
+
+		if (in.size() > 1) {
+			for (ColoredDirectedSubgraph s1 : in) {
+				for (ColoredDirectedSubgraph s2 : in) {
+					if (!s2.equals(s1)) {
+						ColoredDirectedSubgraph merged = merge(s1, s2);
+						out.add(merged);
+					}
+
+				}
+			}
+			out.addAll(findAllFlat(out));
+		}
+
+		return out;
+	}
+	
+	private static Set<ColoredDirectedSubgraph> getSubsets(ArrayList<ColoredDirectedSubgraph> set) {
+
+		Set<ColoredDirectedSubgraph> subsetCollection = new HashSet<ColoredDirectedSubgraph>();
+
+		if (set.size() == 1) {
+			subsetCollection.add(set.get(0));
+		} else {
+			ArrayList<ColoredDirectedSubgraph> reducedSet = new ArrayList<ColoredDirectedSubgraph>();
+
+			reducedSet.addAll(set);
+
+			ColoredDirectedSubgraph first = reducedSet.remove(0);
+			Set<ColoredDirectedSubgraph> subsets = getSubsets(reducedSet);
+			subsetCollection.addAll(subsets);
+
+			subsets = getSubsets(reducedSet);
+
+			Set<ColoredDirectedSubgraph> tmp = new HashSet<ColoredDirectedSubgraph>();
+			for (ColoredDirectedSubgraph subset : subsets) {
+				tmp.add(merge(first, subset));
+			}
+			subsets.addAll(tmp);
+
+			subsetCollection.addAll(subsets);
+		}
+
+		return subsetCollection;
 	}
 	
 	private static void layout(JGraph jgraph, JGraphModelAdapter model, ColoredDirectedGraph jgrapht){ 

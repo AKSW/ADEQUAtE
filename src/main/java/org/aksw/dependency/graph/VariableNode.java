@@ -4,8 +4,12 @@ public class VariableNode extends Node{
 	
 	private String varName;
 	
-	public VariableNode(String varName) {
-		super(varName);
+	public VariableNode(String name) {
+		this(name, name);
+	}
+	
+	public VariableNode(String id, String varName) {
+		super(id, varName);
 		this.varName = varName;
 	}
 	
@@ -20,7 +24,7 @@ public class VariableNode extends Node{
 	
 	@Override
 	public Node asGeneralizedNode() {
-		return new VariableNode("Variable");
+		return new VariableNode(id, "Variable");
 	}
 
 }

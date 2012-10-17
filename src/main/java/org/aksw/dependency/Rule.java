@@ -2,24 +2,29 @@ package org.aksw.dependency;
 
 import org.aksw.dependency.graph.ColoredEdge;
 import org.aksw.dependency.graph.Node;
-import org.jgrapht.graph.DirectedSubgraph;
+import org.jgrapht.DirectedGraph;
 
 public class Rule {
 	
-	private DirectedSubgraph<Node, ColoredEdge> source;
-	private DirectedSubgraph<Node, ColoredEdge> target;
+	private DirectedGraph<Node, ColoredEdge> source;
+	private DirectedGraph<Node, ColoredEdge> target;
 	
-	public Rule(DirectedSubgraph<Node, ColoredEdge> source, DirectedSubgraph<Node, ColoredEdge> target) {
+	public Rule(DirectedGraph<Node, ColoredEdge> source, DirectedGraph<Node, ColoredEdge> target) {
 		this.source = source;
 		this.target = target;
 	}
 	
-	public DirectedSubgraph<Node, ColoredEdge> getSource() {
+	public DirectedGraph<Node, ColoredEdge> getSource() {
 		return source;
 	}
 	
-	public DirectedSubgraph<Node, ColoredEdge> getTarget() {
+	public DirectedGraph<Node, ColoredEdge> getTarget() {
 		return target;
+	}
+	
+	@Override
+	public String toString() {
+		return "Source:\t" + source + "\nTarget:\t" + target;
 	}
 	
 

@@ -5,7 +5,11 @@ public class ResourceNode extends Node{
 	private String name;
 	
 	public ResourceNode(String name) {
-		super(name);
+		this(name, name);
+	}
+	
+	public ResourceNode(String id, String name) {
+		super(id, name);
 		this.name = name;
 	}
 	
@@ -14,7 +18,7 @@ public class ResourceNode extends Node{
 	}
 	
 	public Node asGeneralizedNode(){
-		return new ResourceNode("Resource");
+		return new ResourceNode(id, "Resource");
 	}
 
 }

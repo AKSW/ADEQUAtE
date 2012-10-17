@@ -54,14 +54,14 @@ import edu.stanford.nlp.trees.semgraph.SemanticGraphCoreAnnotations.CollapsedCCP
 import edu.stanford.nlp.util.CoreMap;
 
 public class Learner {
-
-	private static final String TRAIN_FILE = "data/qald2-dbpedia-train.xml";
+	
 	private static final Logger logger = Logger.getLogger(Learner.class);
 
 	private SortedMap<Integer, String> id2QuestionMap = new TreeMap<Integer, String>();
 	private SortedMap<Integer, String> id2SPARQLQueryMap = new TreeMap<Integer, String>();
 	
-	private String endpointURL = "http://live.dbpedia.org/sparql";
+	private static final String TRAIN_FILE = "data/qald2-dbpedia-train.xml";
+	private String endpointURL = "http://dbpedia.org/sparql";
 	
 	private void loadTrainData() {
 		logger.info("Reading file containing queries and answers...");
@@ -213,17 +213,23 @@ public class Learner {
 	public void findMappings(String question, String queryString){
 		//generate the directed graph for the dependencies of the question
 		ColoredDirectedGraph graph1 = generateDependencyGraph(question, true);
-		GraphUtils.paint(graph1, "Dependency Graph");
+//		GraphUtils.paint(graph1, "Dependency Graph");
+//		GraphUtils.paint(graph1.toGeneralizedGraph(), "Dependency Graph");
 		
 		//generate the directed graph for the SPARQL query
 		ColoredDirectedGraph graph2 = generateSPARQLQueryGraph(queryString);
-		GraphUtils.paint(graph2.toGeneralizedGraph(), "SPARQL Query Graph");
+//		GraphUtils.paint(graph2, "SPARQL Query Graph");
+//		GraphUtils.paint(graph2.toGeneralizedGraph(), "SPARQL Query Graph");
 		
 		//compute all subgraphs for the first graph
 		Collection<ColoredDirectedSubgraph> subgraphs1 = GraphUtils.getSubgraphs(graph1);
 		
 		//compute all subgraphs for the second graph
 		Collection<ColoredDirectedSubgraph> subgraphs2 = GraphUtils.getSubgraphs(graph2);
+//		for(ColoredDirectedSubgraph g : subgraphs2){
+//			System.out.println(g);
+//		}
+//		System.exit(0);
 		
 		//prune the set of subgraphs
 		ColoredDirectedSubgraph sub;
@@ -244,31 +250,19 @@ public class Learner {
 		
 		//find the mappings between nodes in dependency graph and SPARQL query graph, if exist
 		//we start from the URIs in the SPARQL query and try to find the corresponding token in the question, makes more sense
-		for(Node sparqlNode : graph2.vertexSet()){
-			String sparqlNodeLabel = sparqlNode.getLabel();
-			if(sparqlNodeLabel.startsWith("http:")){//if node is URI
-				if(RDF.type.getURI().equals(sparqlNodeLabel)){
-					//handle rdf:type predicates
-				} else {
-					String label = getLabel(URI.create(sparqlNodeLabel));
-					for(Node node1 : graph1.vertexSet()){
-						if(node1 instanceof DependencyNode && ((DependencyNode)node1).getPosTag() != null){
-							System.out.println("? " + label + "==" + node1.getLabel());
-						}
-					}
-				}
-			}
-		}
 		Matcher matcher = new StableMarriage();
 		Map<Node, Node> matching = matcher.computeMatching(graph2, graph1);
-		System.out.println(matching);
+		logger.info("Matching:");
+		for(Entry<Node ,Node> entry : matching.entrySet()){
+			logger.info(entry.getKey() + "\t->\t" + entry.getValue());
+		}
 		
 		//filter out graphs which do not contain at least one node involved in a matching
 		for(Iterator<ColoredDirectedSubgraph> iter = subgraphs1.iterator(); iter.hasNext();){
 			sub = iter.next();
 			Set<Node> nodes = new HashSet<Node>(sub.vertexSet());
 			nodes.retainAll(matching.keySet());
-			if(nodes.size() == sub.vertexSet().size()){
+			if(nodes.size() == 0){
 				iter.remove();
 			}
 		}
@@ -276,26 +270,33 @@ public class Learner {
 			sub = iter.next();
 			Set<Node> nodes = new HashSet<Node>(sub.vertexSet());
 			nodes.retainAll(matching.values());
-			if(nodes.size() == sub.vertexSet().size()){
+			if(nodes.size() == 0){
 				iter.remove();
 			}
 		}
 		
 		//1. we only match graphs g1 to graphs g2 if for each source node n_s in g1 there exists the corresponding target node n_t in g2
+		Set<Rule> learnedRules = new HashSet<Rule>();
 		for(ColoredDirectedSubgraph sub1 : subgraphs1){
 			for(ColoredDirectedSubgraph sub2 : subgraphs2){
+				boolean candidate = true;
 				for(Node sourceNode : sub1.vertexSet()){
 					Node targetNode = matching.get(sourceNode);
-					if(sub2.vertexSet().contains(targetNode)){
-						System.out.println("Candidate:\n" + sub1 + "\n" + sub2);
+					if(targetNode != null){
+						if(!sub2.vertexSet().contains(targetNode)){
+							candidate = false;
+						}
 					}
+				}
+				if(candidate){
+					learnedRules.add(new Rule(sub1.toGeneralizedGraph(), sub2.toGeneralizedGraph()));
 				}
 			}
 		}
-		
-		for(Entry<Node, Node> entry : matching.entrySet()){
-			
+		for(Rule rule : learnedRules){
+			logger.info("Candidate:\n" + rule);
 		}
+		
 	}
 	
 	private String getLabel(URI uri){
@@ -325,7 +326,7 @@ public class Learner {
 			String sparqlQuery = id2SPARQLQueryMap.get(id);
 
 			logger.info("###################\t" + id + "\t############################");
-			logger.info("Question: " + question);
+			findMappings(question, sparqlQuery);
 
 			
 

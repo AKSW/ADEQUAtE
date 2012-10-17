@@ -7,7 +7,11 @@ public class PropertyNode extends Node{
 	private String name;
 	
 	public PropertyNode(String name) {
-		super(name);
+		this(name, name);
+	}
+	
+	public PropertyNode(String id, String name) {
+		super(id, name);
 		this.name = name;
 	}
 	
@@ -17,9 +21,10 @@ public class PropertyNode extends Node{
 	
 	public Node asGeneralizedNode(){
 		if(name.equals(RDF.type.getURI())){
+			label = "rdf:type";
 			return this;
 		} else {
-			return new PropertyNode("Property");
+			return new PropertyNode(id, "Property");
 		}
 	}
 }

@@ -14,7 +14,8 @@ public class SPARQLUtil {
 	}
 
 	public static boolean isProperty(String endpointURL, String uri) {
-		Query query = QueryFactory.create(String.format("ASK {{<%s> a <http://www.w3.org/2002/07/owl#ObjectProperty>.} UNION {<%s> a <http://www.w3.org/2002/07/owl#ObjectProperty>.}}", uri, uri));
+		Query query = QueryFactory.create(String.format("ASK {{<%s> a <http://www.w3.org/2002/07/owl#ObjectProperty>.}" +
+				" UNION {<%s> a <http://www.w3.org/2002/07/owl#DatatypeProperty>.}}", uri, uri));
 		QueryEngineHTTP qe = new QueryEngineHTTP(endpointURL, query);
 
 		return qe.execAsk();
