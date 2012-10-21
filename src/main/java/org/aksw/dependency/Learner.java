@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -28,6 +29,7 @@ import org.aksw.dependency.graph.DependencyNode;
 import org.aksw.dependency.graph.Node;
 import org.aksw.dependency.util.GraphUtils;
 import org.aksw.dependency.util.Matcher;
+import org.aksw.dependency.util.SimPackGraphWrapper;
 import org.aksw.dependency.util.StableMarriage;
 import org.apache.log4j.Logger;
 import org.w3c.dom.DOMException;
@@ -36,6 +38,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import simpack.measure.graph.GraphIsomorphism;
+
+import com.google.common.collect.BiMap;
 import com.hp.hpl.jena.query.Query;
 import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.Syntax;
@@ -210,7 +215,7 @@ public class Learner {
 		return directedGraph;
 	}
 	
-	public void findMappings(String question, String queryString){
+	public Collection<Rule> computeMappingRules(String question, String queryString){
 		//generate the directed graph for the dependencies of the question
 		ColoredDirectedGraph graph1 = generateDependencyGraph(question, true);
 //		GraphUtils.paint(graph1, "Dependency Graph");
@@ -251,7 +256,7 @@ public class Learner {
 		//find the mappings between nodes in dependency graph and SPARQL query graph, if exist
 		//we start from the URIs in the SPARQL query and try to find the corresponding token in the question, makes more sense
 		Matcher matcher = new StableMarriage();
-		Map<Node, Node> matching = matcher.computeMatching(graph2, graph1);
+		BiMap<Node, Node> matching = matcher.computeMatching(graph2, graph1);
 		logger.info("Matching:");
 		for(Entry<Node ,Node> entry : matching.entrySet()){
 			logger.info(entry.getKey() + "\t->\t" + entry.getValue());
@@ -275,7 +280,7 @@ public class Learner {
 			}
 		}
 		
-		//1. we only match graphs g1 to graphs g2 if for each source node n_s in g1 there exists the corresponding target node n_t in g2
+		//1. we only match graphs g1 to graphs g2 if for each source node n_s in g1 there exists the corresponding target node n_t in g2 and vice versa
 		Set<Rule> learnedRules = new HashSet<Rule>();
 		for(ColoredDirectedSubgraph sub1 : subgraphs1){
 			for(ColoredDirectedSubgraph sub2 : subgraphs2){
@@ -285,6 +290,16 @@ public class Learner {
 					if(targetNode != null){
 						if(!sub2.vertexSet().contains(targetNode)){
 							candidate = false;
+							break;
+						}
+					}
+				}
+				for(Node sourceNode : sub2.vertexSet()){
+					Node targetNode = matching.inverse().get(sourceNode);
+					if(targetNode != null){
+						if(!sub1.vertexSet().contains(targetNode)){
+							candidate = false;
+							break;
 						}
 					}
 				}
@@ -293,10 +308,86 @@ public class Learner {
 				}
 			}
 		}
-		for(Rule rule : learnedRules){
+		
+		return learnedRules;
+	}
+	
+	private void computeRuleFrequency(Collection<Rule> rules){
+		Map<ColoredDirectedGraph, Integer> graphCnt = new HashMap<ColoredDirectedGraph, Integer>();
+		for(Rule rule : rules){
 			logger.info("Candidate:\n" + rule);
+			int cnt = 0;
+			ColoredDirectedGraph g = null;
+			for(Entry<ColoredDirectedGraph, Integer> entry : graphCnt.entrySet()){
+				ColoredDirectedGraph g1 = entry.getKey();
+				ColoredDirectedGraph g2 = rule.getSource();
+				
+				boolean sameNodeSet = containSameNodes(g1, g2);
+				if(!sameNodeSet){
+					continue;
+				}
+				
+				if(g1.edgeSet().size() != g2.edgeSet().size()){
+					continue;
+				}
+				
+				GraphIsomorphism gi = new GraphIsomorphism(SimPackGraphWrapper.getGraph(entry.getKey()), SimPackGraphWrapper.getGraph(rule.getSource()));
+		        gi.calculate();
+		        g = null;
+		        if(gi.getGraphIsomorphism() == 1){
+//		        	logger.trace("ISOMORPH:\n" + entry.getKey() + "\n" + rule.getSource());
+		        	cnt = entry.getValue()+1;
+		        	g = entry.getKey();
+		        	break;
+		        }
+			}
+			if(cnt > 1){
+				if(g != null){
+					graphCnt.remove(g);
+				}
+				graphCnt.put(rule.getSource(), Integer.valueOf(cnt));
+			} else {
+				graphCnt.put(rule.getSource(), Integer.valueOf(1));
+			}
+			
+		}
+		for(Entry<ColoredDirectedGraph, Integer> entry : graphCnt.entrySet()){
+			if(entry.getValue()>1){
+				System.out.println(entry);
+			}
+		}
+	}
+	
+	private boolean containSameNodes(ColoredDirectedGraph g1, ColoredDirectedGraph g2){
+		if(g1.vertexSet().size() != g2.vertexSet().size()){
+			return false;
+		}
+		for(Node n1 : g1.vertexSet()){
+			boolean match = false;
+			for(Node n2 : g2.vertexSet()){
+				if(n1.getLabel().equals(n2.getLabel())){
+					match = true;
+					break;
+				}
+			}
+			if(!match){
+				return false;
+			}
+		}
+		for(Node n2 : g2.vertexSet()){
+			boolean match = false;
+			for(Node n1 : g1.vertexSet()){
+				if(n1.getLabel().equals(n2.getLabel())){
+					match = true;
+					break;
+				}
+			}
+			if(!match){
+				return false;
+			}
 		}
 		
+		return true;
 	}
 	
 	private String getLabel(URI uri){
@@ -319,18 +410,24 @@ public class Learner {
 
 	public void learn() {
 		loadTrainData();
+		
+		Set<Rule> rules = new HashSet<Rule>();
 
 		for (Entry<Integer, String> id2Question : id2QuestionMap.entrySet()) {
 			int id = id2Question.getKey();
 			String question = id2Question.getValue();
 			String sparqlQuery = id2SPARQLQueryMap.get(id);
+			Query query = QueryFactory.create(sparqlQuery, Syntax.syntaxARQ);
+			if(!query.isSelectType()){
+				continue;
+			}
 
 			logger.info("###################\t" + id + "\t############################");
-			findMappings(question, sparqlQuery);
-
-			
-
+			Collection<Rule> learnedRules = computeMappingRules(question, sparqlQuery);
+			rules.addAll(learnedRules);
 		}
+		
+		computeRuleFrequency(rules);
 	}
 
 	public static void main(String[] args) {
@@ -348,7 +445,8 @@ public class Learner {
 //		queryString = "PREFIX dbo: <http://dbpedia.org/ontology/> PREFIX res: <http://dbpedia.org/resource/> " + 
 //		"SELECT DISTINCT ?uri WHERE {?uri dbo:series res:The_Sopranos  . ?uri dbo:seasonNumber 1 .}";
 
-		new Learner().findMappings(question, queryString);
+//		new Learner().computeMappingRules(question, queryString);
+		new Learner().learn();
 
 	}
 

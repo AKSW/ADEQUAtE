@@ -13,17 +13,19 @@ import org.aksw.dependency.graph.ColoredDirectedGraph;
 import org.aksw.dependency.graph.DependencyNode;
 import org.aksw.dependency.graph.Node;
 
+import uk.ac.shef.wit.simmetrics.similaritymetrics.AbstractStringMetric;
+import uk.ac.shef.wit.simmetrics.similaritymetrics.Levenshtein;
+
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.vocabulary.RDF;
 
-import uk.ac.shef.wit.simmetrics.similaritymetrics.AbstractStringMetric;
-import uk.ac.shef.wit.simmetrics.similaritymetrics.Levenshtein;
-
 public class StableMarriage implements Matcher{
 	
-	public Map<Node, Node> computeMatching(ColoredDirectedGraph graph1, ColoredDirectedGraph graph2){
+	public BiMap<Node, Node> computeMatching(ColoredDirectedGraph graph1, ColoredDirectedGraph graph2){
 		//1. build the preferences
 		Map<Node, List<Node>> preferences1 = new HashMap<Node, List<Node>>();
 		Map<Node, List<Node>> preferences2 = new HashMap<Node, List<Node>>();
@@ -86,15 +88,15 @@ public class StableMarriage implements Matcher{
 			preferences2.put(node2, new ArrayList<Node>(candidates));
 		}
 		//2. compute a stable matching
-		Map<Node, Node> matching = match(nodes1, preferences1, preferences2);
+		BiMap<Node, Node> matching = match(nodes1, preferences1, preferences2);
 		return matching;
 		
 	}
 	
-	private Map<Node, Node> match(List<Node> nodes,
+	private BiMap<Node, Node> match(List<Node> nodes,
 			Map<Node, List<Node>> preferences1,
 			Map<Node, List<Node>> preferences2){
-		Map<Node, Node> matchedTo = new HashMap<Node, Node>();
+		BiMap<Node, Node> matchedTo = HashBiMap.create();
         List<Node> freeNodes = new LinkedList<Node>();
         freeNodes.addAll(nodes);
         while(!freeNodes.isEmpty()){

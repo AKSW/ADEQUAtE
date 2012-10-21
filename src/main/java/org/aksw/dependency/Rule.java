@@ -1,24 +1,22 @@
 package org.aksw.dependency;
 
-import org.aksw.dependency.graph.ColoredEdge;
-import org.aksw.dependency.graph.Node;
-import org.jgrapht.DirectedGraph;
+import org.aksw.dependency.graph.ColoredDirectedGraph;
 
 public class Rule {
 	
-	private DirectedGraph<Node, ColoredEdge> source;
-	private DirectedGraph<Node, ColoredEdge> target;
+	private ColoredDirectedGraph source;
+	private ColoredDirectedGraph target;
 	
-	public Rule(DirectedGraph<Node, ColoredEdge> source, DirectedGraph<Node, ColoredEdge> target) {
+	public Rule(ColoredDirectedGraph source, ColoredDirectedGraph target) {
 		this.source = source;
 		this.target = target;
 	}
 	
-	public DirectedGraph<Node, ColoredEdge> getSource() {
+	public ColoredDirectedGraph getSource() {
 		return source;
 	}
 	
-	public DirectedGraph<Node, ColoredEdge> getTarget() {
+	public ColoredDirectedGraph getTarget() {
 		return target;
 	}
 	

@@ -5,6 +5,7 @@ import java.util.Set;
 import org.aksw.dependency.graph.ClassNode;
 import org.aksw.dependency.graph.ColoredDirectedGraph;
 import org.aksw.dependency.graph.ColoredEdge;
+import org.aksw.dependency.graph.LiteralNode;
 import org.aksw.dependency.graph.Node;
 import org.aksw.dependency.graph.PropertyNode;
 import org.aksw.dependency.graph.ResourceNode;
@@ -73,7 +74,7 @@ public class SPARQLQuery2GraphConverter {
 				}
 			}
 		} else if(node.isLiteral()){
-			
+			return new LiteralNode(node.getLiteralLexicalForm());
 		} 
 		return null;
 	}
