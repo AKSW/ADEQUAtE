@@ -4,8 +4,11 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -66,7 +69,7 @@ public class Learner {
 	private SortedMap<Integer, String> id2SPARQLQueryMap = new TreeMap<Integer, String>();
 	
 	private static final String TRAIN_FILE = "data/qald2-dbpedia-train.xml";
-	private String endpointURL = "http://dbpedia.org/sparql";
+	private String endpointURL = "http://live.dbpedia.org/sparql";
 	
 	private void loadTrainData() {
 		logger.info("Reading file containing queries and answers...");
@@ -313,49 +316,70 @@ public class Learner {
 	}
 	
 	private void computeRuleFrequency(Collection<Rule> rules){
-		Map<ColoredDirectedGraph, Integer> graphCnt = new HashMap<ColoredDirectedGraph, Integer>();
+		Map<Rule, Integer> graphCnt = new HashMap<Rule, Integer>();
 		for(Rule rule : rules){
-			logger.info("Candidate:\n" + rule);
+//			logger.info("Candidate:\n" + rule);
 			int cnt = 0;
-			ColoredDirectedGraph g = null;
-			for(Entry<ColoredDirectedGraph, Integer> entry : graphCnt.entrySet()){
-				ColoredDirectedGraph g1 = entry.getKey();
-				ColoredDirectedGraph g2 = rule.getSource();
+			Rule r = null;
+			for(Entry<Rule, Integer> entry : graphCnt.entrySet()){
+				ColoredDirectedGraph source = entry.getKey().getSource();
+				ColoredDirectedGraph target = entry.getKey().getTarget();
 				
-				boolean sameNodeSet = containSameNodes(g1, g2);
+				ColoredDirectedGraph currentSource = rule.getSource();
+				ColoredDirectedGraph currentTarget = rule.getTarget();
+				
+				boolean sameNodeSet = containSameNodes(source, currentSource) && containSameNodes(target, currentTarget);
 				if(!sameNodeSet){
 					continue;
 				}
 				
-				if(g1.edgeSet().size() != g2.edgeSet().size()){
+				if((source.edgeSet().size() != currentSource.edgeSet().size()) && (target.edgeSet().size() != currentTarget.edgeSet().size())){
 					continue;
 				}
 				
-				GraphIsomorphism gi = new GraphIsomorphism(SimPackGraphWrapper.getGraph(entry.getKey()), SimPackGraphWrapper.getGraph(rule.getSource()));
-		        gi.calculate();
-		        g = null;
-		        if(gi.getGraphIsomorphism() == 1){
+				GraphIsomorphism sourceGi = new GraphIsomorphism(SimPackGraphWrapper.getGraph(source), SimPackGraphWrapper.getGraph(currentSource));
+				sourceGi.calculate();
+				GraphIsomorphism targetGi = new GraphIsomorphism(SimPackGraphWrapper.getGraph(target), SimPackGraphWrapper.getGraph(currentTarget));
+				targetGi.calculate();
+		        r = null;
+		        if(sourceGi.getGraphIsomorphism() == 1 && targetGi.getGraphIsomorphism() == 1){
 //		        	logger.trace("ISOMORPH:\n" + entry.getKey() + "\n" + rule.getSource());
 		        	cnt = entry.getValue()+1;
-		        	g = entry.getKey();
+		        	r = entry.getKey();
 		        	break;
 		        }
 			}
 			if(cnt > 1){
-				if(g != null){
-					graphCnt.remove(g);
+				if(r != null){
+					graphCnt.remove(r);
 				}
-				graphCnt.put(rule.getSource(), Integer.valueOf(cnt));
+				graphCnt.put(rule, Integer.valueOf(cnt));
 			} else {
-				graphCnt.put(rule.getSource(), Integer.valueOf(1));
+				graphCnt.put(rule, Integer.valueOf(1));
 			}
 			
 		}
-		for(Entry<ColoredDirectedGraph, Integer> entry : graphCnt.entrySet()){
+		
+		List<Entry<Rule, Integer>> sortedRules = sortByValues(graphCnt);
+		
+		for(Entry<Rule, Integer> entry : sortedRules){
 			if(entry.getValue()>1){
+				System.out.println("****************************************");
 				System.out.println(entry);
 			}
 		}
+	}
+	
+	protected <K, V extends Comparable<V>> List<Entry<K, V>> sortByValues(Map<K, V> map){
+		List<Entry<K, V>> entries = new ArrayList<Entry<K, V>>(map.entrySet());
+        Collections.sort(entries, new Comparator<Entry<K, V>>() {
+
+			@Override
+			public int compare(Entry<K, V> o1, Entry<K, V> o2) {
+				return o2.getValue().compareTo(o1.getValue());
+			}
+		});
+        return entries;
 	}
 	
 	private boolean containSameNodes(ColoredDirectedGraph g1, ColoredDirectedGraph g2){
@@ -414,7 +438,7 @@ public class Learner {
 		Set<Rule> rules = new HashSet<Rule>();
 
 		for (Entry<Integer, String> id2Question : id2QuestionMap.entrySet()) {
-			int id = id2Question.getKey();
+			int id = id2Question.getKey();if(id==72)continue;
 			String question = id2Question.getValue();
 			String sparqlQuery = id2SPARQLQueryMap.get(id);
 			Query query = QueryFactory.create(sparqlQuery, Syntax.syntaxARQ);
@@ -445,6 +469,16 @@ public class Learner {
 //		queryString = "PREFIX dbo: <http://dbpedia.org/ontology/> PREFIX res: <http://dbpedia.org/resource/> " + 
 //		"SELECT DISTINCT ?uri WHERE {?uri dbo:series res:The_Sopranos  . ?uri dbo:seasonNumber 1 .}";
 
+		question = "Which companies work in the aerospace industry as well as on nuclear reactor technology?";
+		queryString = "PREFIX dbo:  <http://dbpedia.org/ontology/> " +
+				"PREFIX dbp: <http://dbpedia.org/property/> " +
+				"PREFIX res:  <http://dbpedia.org/resource/> " +
+				"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> " +
+				"PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
+				"SELECT DISTINCT ?uri WHERE {" +
+				"?uri rdf:type dbo:Company  ." +
+				"?uri dbp:industry res:Aerospace ." +
+				"?uri dbp:industry res:Nuclear_reactor_technology .}";
 //		new Learner().computeMappingRules(question, queryString);
 		new Learner().learn();
 

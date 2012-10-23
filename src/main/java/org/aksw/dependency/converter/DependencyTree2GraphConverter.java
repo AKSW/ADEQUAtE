@@ -49,14 +49,15 @@ public class DependencyTree2GraphConverter {
 	public ColoredDirectedGraph getGraph(SemanticGraph dependencyGraph, boolean pruned) {
 		ColoredDirectedGraph graph = new DependencyGraph();
 
-		List<String> ignore = Arrays.asList(new String[] { "WP", "DT", "PRP" });
+		List<String> ignoreWordsWithTag = Arrays.asList(new String[] { "WP", "DT", "PRP"});
+		List<String> ignoreRelations = Arrays.asList(new String[]{"conj_and"});
 		Map<String, Integer> relationOccurenceCount = new HashMap<String, Integer>();
 		for (SemanticGraphEdge edge : dependencyGraph.edgeListSorted()) {
 			IndexedWord sourceWord = edge.getSource();
 			IndexedWord targetWord = edge.getTarget();
 			GrammaticalRelation relation = edge.getRelation();
 
-			if (!pruned || (pruned && !ignore.contains(targetWord.tag()))) {
+			if (!pruned || (pruned && !ignoreWordsWithTag.contains(targetWord.tag()) && !ignoreRelations.contains(relation.toString()))) {
 				String color = "black";
 
 				Node source = new DependencyNode(sourceWord.word(), sourceWord.tag());

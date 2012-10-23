@@ -12,11 +12,10 @@ astronaut, female, Russian
 PREFIX yago: <http://dbpedia.org/class/yago/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri rdf:type yago:RussianCosmonauts .
         ?uri rdf:type yago:FemaleAstronauts .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -51,7 +50,7 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
         res:Bill_Clinton dbo:child ?child .
         ?child dbp:spouse ?string .
@@ -71,10 +70,9 @@ Brooklyn Bridge, river, cross
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {       
         res:Brooklyn_Bridge dbo:crosses ?uri . 
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -110,10 +108,9 @@ Abraham Lincoln, die
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string WHERE
+SELECT DISTINCT ?uri WHERE
 { 
         res:Abraham_Lincoln dbo:deathPlace ?uri .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -151,11 +148,10 @@ PREFIX res: <http://dbpedia.org/resource/>
 PREFIX yago: <http://dbpedia.org/class/yago/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
         ?uri rdf:type yago:StatesOfGermany .
         { ?uri dbp:rulingParty 'SPD'@en . } UNION { ?uri dbp:rulingParty res:Social_Democratic_Party_of_Germany . } 
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -172,12 +168,11 @@ PREFIX yago: <http://dbpedia.org/class/yago/>
 PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string
+SELECT DISTINCT ?uri
 WHERE {
         ?uri rdf:type yago:StatesOfTheUnitedStates .
         ?uri dbp:mineral ?mineral .
         FILTER (regex(?mineral,'Gold')) .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -193,10 +188,9 @@ Nile, country, start
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {       
         res:Nile dbo:sourceCountry ?uri .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -212,12 +206,11 @@ cave, country, place, two
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {       
         ?cave rdf:type dbo:Cave . 
         ?cave dbo:location ?uri .
         ?uri rdf:type dbo:Country .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 } 
 GROUP BY ?uri ?string
 HAVING (COUNT(?cave) > 2)
@@ -289,10 +282,9 @@ created, Goofy
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
         res:Goofy dbo:creator ?uri .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -309,11 +301,10 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX yago: <http://dbpedia.org/class/yago/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string
+SELECT DISTINCT ?uri
 WHERE { 
 	?states rdf:type yago:AfricanCountries .
         ?states dbo:capital ?uri .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -331,13 +322,12 @@ PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri rdf:type dbo:City .
         ?uri dbo:isPartOf res:New_Jersey .
         ?uri dbp:populationTotal ?inhabitants .
         FILTER (?inhabitants > 100000) .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -353,10 +343,9 @@ museum, exhibit, Scream, Munch
 PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	res:The_Scream dbp:museum ?uri .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -408,10 +397,9 @@ Illinois, state, border
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
       res:Illinois dbp:borderingstates ?uri .
-      OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') . }
 }
 ]]></query>
 </question>
@@ -427,10 +415,9 @@ Limerick Lake, country
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE { 
 	res:Limerick_Lake dbo:country ?uri .
-	OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -447,11 +434,10 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri rdf:type dbo:TelevisionShow .
         ?uri dbo:creator res:Walt_Disney .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -468,13 +454,12 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {       
         res:Annapurna dbo:elevation ?elevation .
         ?uri rdf:type dbo:Mountain . 
         ?uri dbo:elevation ?otherelevation .
         FILTER (?otherelevation < ?elevation) .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') } 
 } 
 ORDER BY DESC(?otherelevation) LIMIT 1
 ]]></query>
@@ -492,12 +477,11 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri rdf:type dbo:Film .
         ?uri dbo:starring res:Julia_Roberts .
         ?uri dbo:director res:Garry_Marshall .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -515,14 +499,13 @@ PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {       
         ?uri rdf:type dbo:Bridge .
         ?uri dbp:design ?design .
         res:Manhattan_Bridge dbp:design ?mdesign . 
         FILTER (regex(?design, ?mdesign)).
         FILTER (?uri != res:Manhattan_Bridge) . 
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -557,11 +540,10 @@ PREFIX res: <http://dbpedia.org/resource/>
 PREFIX yago: <http://dbpedia.org/class/yago/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri rdf:type yago:EuropeanCountries .
         ?uri dbo:governmentType res:Constitutional_monarchy .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -577,10 +559,9 @@ award, WikiLeaks, win
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
         res:WikiLeaks dbp:awards ?uri .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -597,11 +578,10 @@ PREFIX yago: <http://dbpedia.org/class/yago/>
 PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri rdf:type yago:StatesOfTheUnitedStates .
         ?uri dbp:densityrank ?rank .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 } 
 ORDER BY ASC(?rank) LIMIT 1
 ]]></query>
@@ -618,10 +598,9 @@ Czech republic, currency
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	res:Czech_Republic dbo:currency ?uri .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -639,7 +618,7 @@ PREFIX res: <http://dbpedia.org/resource/>
 PREFIX yago: <http://dbpedia.org/class/yago/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri rdf:type yago:EuropeanUnionMemberStates .
         { ?uri dbp:currency res:Euro . } 
@@ -647,7 +626,6 @@ WHERE {
         { ?uri dbp:currencyCode 'EUR'@en . }
         UNION 
         { ?uri dbp:currencyCode 'Euro'@en . }
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -681,11 +659,10 @@ official language, country, more than two
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string WHERE
+SELECT DISTINCT ?uri WHERE
 { 
 	?uri rdf:type dbo:Country  .
         ?uri dbo:officialLanguage ?language .
-	OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 } 
 GROUP BY ?uri ?string
 HAVING (COUNT(?language) > 2)
@@ -703,10 +680,9 @@ Universal Studios, owner
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	res:Universal_Studios dbo:owner ?uri .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -722,10 +698,9 @@ Yenisei river, flow through, country
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
         res:Yenisei_River dbp:country ?uri .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -760,12 +735,11 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
         ?uri rdf:type yago:MonarchsOfTheUnitedKingdom .
         ?uri dbo:spouse ?spouse .
         ?spouse dbo:birthPlace res:Germany.
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -799,12 +773,11 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri rdf:type dbo:Mountain .
         ?uri dbo:locatedInArea res:Australia .
         ?uri dbo:elevation ?elevation .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 } 
 ORDER BY DESC(?elevation) LIMIT 1
 ]]></query>
@@ -823,13 +796,12 @@ PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri rdf:type dbo:SoccerClub .
         { ?uri dbo:ground res:Spain . }
         UNION 
         { ?uri dbp:ground ?ground . FILTER (regex(?ground, 'Spain')) }
-        OPTIONAL {?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -845,10 +817,9 @@ Philippines, official language
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE { 
         res:Philippines dbo:officialLanguage ?uri .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -864,10 +835,9 @@ New York City, mayor
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT ?uri ?string 
+SELECT ?uri
 WHERE { 
         res:New_York_City dbo:leaderName ?uri .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -883,10 +853,9 @@ Brooklyn Bridge, designed
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
         res:Brooklyn_Bridge dbp:designer ?uri .
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -904,12 +873,11 @@ PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE { 	
 	?uri  rdf:type dbo:Organisation  .
 	{ ?uri dbp:industry res:Telecommunications . } UNION { ?uri dbp:industry ?industry . FILTER (regex(?industry, 'Telecommunication')) . }
 	{ ?uri dbo:location res:Belgium. } UNION { ?uri dbp:location res:Belgium. } UNION { ?uri dbp:locationCountry 'Belgium'@en . }
-	OPTIONAL {?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -943,10 +911,9 @@ Karakoram, highest place
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {       
         res:Karakoram dbo:highestPlace ?uri .  
-        OPTIONAL { ?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -981,12 +948,11 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE { 
 	?uri rdf:type dbo:Company  .
         ?uri dbp:industry ?industry .
         FILTER regex(?industry,'advertising','i') .
-        OPTIONAL {?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1002,10 +968,9 @@ Bruce Carver, die
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
         res:Bruce_Carver dbo:deathCause ?uri .     
-        OPTIONAL {?uri rdfs:label ?string. FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1021,10 +986,9 @@ school type
 PREFIX yago: <http://dbpedia.org/class/yago/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE { 
 	?uri rdf:type yago:SchoolTypes .
-        OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1041,14 +1005,13 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX yago: <http://dbpedia.org/class/yago/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	{ ?uri rdf:type dbo:President . }
 	UNION
 	{ ?uri rdf:type yago:Presidents . }
         ?uri dbo:birthDate ?date .
 	FILTER regex(?date, '^1945') .
-        OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1067,15 +1030,14 @@ PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
         ?uri rdf:type dbo:Person .
         { ?uri rdf:type yago:PresidentsOfTheUnitedStates. }
         UNION
         { ?uri rdf:type dbo:President.
           ?uri dbp:title res:President_of_the_United_States. }
-        ?uri rdfs:label ?string. 
-        FILTER (lang(?string) = 'en' && !regex(?string,'Presidency','i') && !regex(?string,'and the')) .
+        FILTER (!regex(?string,'Presidency','i') && !regex(?string,'and the')) .
 }
 ]]></query>
 </question>
@@ -1091,10 +1053,9 @@ United States, Lincoln, president, wife
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	res:Abraham_Lincoln dbo:spouse ?uri.
-        OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1110,10 +1071,9 @@ video game, World of Warcraft, developed
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	res:World_of_Warcraft dbo:developer ?uri . 
-        OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1146,11 +1106,10 @@ HBO, television series, Sopranos, first season, list, episode
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri dbo:series res:The_Sopranos  .
         ?uri dbo:seasonNumber 1 .
-	OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1169,8 +1128,7 @@ PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
 SELECT DISTINCT ?uri 
 WHERE {
 	?film rdf:type dbo:Film .
-        ?film dbo:producer ?uri .
-       }
+    ?film dbo:producer ?uri .
 }
 GROUP BY ?uri 
 ORDER BY DESC(COUNT(?film)) LIMIT 1
@@ -1414,11 +1372,10 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res:  <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri rdf:type dbo:Film .
         ?uri dbo:producer res:Hal_Roach .
-	OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1436,13 +1393,12 @@ PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX res:  <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
       ?uri rdf:type dbo:VideoGame .
       { ?uri dbp:publisher 'Mean Hamster Software'@en . }
       UNION 
       { ?uri dbo:publisher res:Mean_Hamster_Software . }
-      OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1458,12 +1414,11 @@ Estonia, language, spoken
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res:  <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE { 
       { res:Estonia dbo:language ?uri . } 
       UNION 
       { ?uri dbo:spokenIn res:Estonia . }
-      OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1479,10 +1434,9 @@ own, Aldi
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	res:Aldi dbo:keyPerson ?uri .
-	OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1498,11 +1452,10 @@ capital, Europe, host city, summer olympic games
 PREFIX yago: <http://dbpedia.org/class/yago/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri 
 WHERE {
 	?uri rdf:type yago:CapitalsInEurope .
         ?uri rdf:type yago:HostCitiesOfTheSummerOlympicGames .
-        OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') } 
 }
 ]]></query>
 </question>
@@ -1517,10 +1470,9 @@ Who has been the 5th president of the United States of America?
 <query><![CDATA[
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri dbo:orderInOffice '5th President of the United States'@en .
-        OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1553,11 +1505,10 @@ Last Christmas, music album, contain, song
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
         ?single dbo:album ?uri .
         ?single foaf:name 'Last Christmas'@en .
-        OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1574,11 +1525,10 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res:  <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri rdf:type dbo:Book .
         ?uri dbo:author res:Danielle_Steel .
-	OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1595,11 +1545,10 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE { 
 	?uri rdf:type dbo:Airport .
         ?uri dbo:location res:California .
-        OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1616,12 +1565,11 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri rdf:type dbo:RecordLabel .
         ?uri dbo:genre res:Grunge .
         ?uri dbo:country res:Canada .
-        OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') } 
 }
 ]]></query>
 </question>
@@ -1638,12 +1586,12 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string WHERE
+SELECT DISTINCT ?uri WHERE
 { 
 	?uri rdf:type dbo:Country  .
         ?uri dbp:officialLanguages ?language .
-	OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }		     
 } 
+GROUP BY ?uri
 ORDER BY DESC(COUNT(?language)) LIMIT 1
 ]]></query>
 </question>
@@ -1659,10 +1607,9 @@ programming language, GIMP, written
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE { 
 	res:GIMP dbo:programmingLanguage ?uri .
-	OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1679,12 +1626,11 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?film rdf:type dbo:Film .
         ?film dbo:starring res:Natalie_Portman .
         ?film dbo:producer ?uri .
-	OPTIONAL {?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1701,11 +1647,10 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri rdf:type dbo:Film.
 	?uri dbo:starring res:Tom_Cruise .
-	OPTIONAL {?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1722,12 +1667,11 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri rdf:type dbo:Film .
         ?uri dbo:starring res:Julia_Roberts .
         ?uri dbo:starring res:Richard_Gere.
-	OPTIONAL {?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1745,11 +1689,10 @@ PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri rdf:type yago:FemaleHeadsOfGovernment.
         ?uri dbp:office res:Chancellor_of_Germany .
-        OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1765,10 +1708,9 @@ wrote, book, The pillars of the Earth
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	res:The_Pillars_of_the_Earth dbo:author ?uri .
-	OPTIONAL {?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1804,10 +1746,9 @@ Premier League, soccer club
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX res: <http://dbpedia.org/resource/>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE { 
    ?uri dbo:league res:Premier_League . 
-   OPTIONAL {?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1841,12 +1782,11 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX dbp: <http://dbpedia.org/property/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE {
 	?uri rdf:type dbo:Organisation .
         { ?uri dbp:foundation ?date . } UNION { ?uri dbo:formationYear ?date . }
         FILTER regex(?date,'^1950') .
-	OPTIONAL { ?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 }
 ]]></query>
 </question>
@@ -1862,11 +1802,10 @@ highest mountain
 PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-SELECT DISTINCT ?uri ?string 
+SELECT DISTINCT ?uri
 WHERE { 
 	?uri rdf:type dbo:Mountain  .
         ?uri dbo:elevation ?elevation .
-        OPTIONAL {?uri rdfs:label ?string . FILTER (lang(?string) = 'en') }
 } 
 ORDER BY DESC(?elevation) LIMIT 1
 ]]></query>
