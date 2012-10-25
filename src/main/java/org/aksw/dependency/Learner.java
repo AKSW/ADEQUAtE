@@ -30,6 +30,7 @@ import org.aksw.dependency.graph.ColoredDirectedGraph;
 import org.aksw.dependency.graph.ColoredDirectedSubgraph;
 import org.aksw.dependency.graph.DependencyNode;
 import org.aksw.dependency.graph.Node;
+import org.aksw.dependency.util.Generalization;
 import org.aksw.dependency.util.GraphUtils;
 import org.aksw.dependency.util.Matcher;
 import org.aksw.dependency.util.SimPackGraphWrapper;
@@ -288,6 +289,7 @@ public class Learner {
 		for(ColoredDirectedSubgraph sub1 : subgraphs1){
 			for(ColoredDirectedSubgraph sub2 : subgraphs2){
 				boolean candidate = true;
+				Map<Node, Node> mapping = new HashMap<Node, Node>();
 				for(Node sourceNode : sub1.vertexSet()){
 					Node targetNode = matching.get(sourceNode);
 					if(targetNode != null){
@@ -295,6 +297,7 @@ public class Learner {
 							candidate = false;
 							break;
 						}
+						mapping.put(sourceNode, targetNode);
 					}
 				}
 				for(Node sourceNode : sub2.vertexSet()){
@@ -304,10 +307,17 @@ public class Learner {
 							candidate = false;
 							break;
 						}
+						mapping.put(targetNode, sourceNode);
 					}
 				}
 				if(candidate){
-					learnedRules.add(new Rule(sub1.toGeneralizedGraph(), sub2.toGeneralizedGraph()));
+					Generalization gen1 = sub1.generalize();
+					Generalization gen2 = sub2.generalize();
+					Map<Node, Node> generalizedMapping = new HashMap<Node, Node>();
+					for(Entry<Node, Node> entry : mapping.entrySet()){
+						generalizedMapping.put(gen1.getMapping().get(entry.getKey()), gen2.getMapping().get(entry.getValue()));
+					}
+					learnedRules.add(new Rule(gen1.getGeneralizedGraph(), gen2.getGeneralizedGraph(), generalizedMapping));
 				}
 			}
 		}
@@ -363,7 +373,57 @@ public class Learner {
 		List<Entry<Rule, Integer>> sortedRules = sortByValues(graphCnt);
 		
 		for(Entry<Rule, Integer> entry : sortedRules){
-			if(entry.getValue()>1){
+			if(entry.getValue()>5){
+				System.out.println("****************************************");
+				System.out.println(entry);
+			}
+		}
+	}
+	
+	private void computeRuleFrequency2(Collection<Rule> rules){
+		Map<Rule, Integer> graphCnt = new HashMap<Rule, Integer>();
+		for(Rule rule : rules){
+//			logger.info("Candidate:\n" + rule);
+			int cnt = 0;
+			Rule r = null;
+			for(Entry<Rule, Integer> entry : graphCnt.entrySet()){
+				ColoredDirectedGraph currentGraph = rule.asConnectedGraph();
+				ColoredDirectedGraph graph = entry.getKey().asConnectedGraph();
+				
+				boolean sameNodeSet = containSameNodes(currentGraph, graph);
+				if(!sameNodeSet){
+					continue;
+				}
+				
+				if((currentGraph.edgeSet().size() != graph.edgeSet().size())){
+					continue;
+				}
+				
+				GraphIsomorphism gi = new GraphIsomorphism(SimPackGraphWrapper.getGraph(currentGraph), SimPackGraphWrapper.getGraph(graph));
+				gi.calculate();
+		        r = null;
+		        if(gi.getGraphIsomorphism() == 1){
+//		        	logger.trace("ISOMORPH:\n" + entry.getKey() + "\n" + rule.getSource());
+		        	cnt = entry.getValue()+1;
+		        	r = entry.getKey();
+		        	break;
+		        }
+			}
+			if(cnt > 1){
+				if(r != null){
+					graphCnt.remove(r);
+				}
+				graphCnt.put(rule, Integer.valueOf(cnt));
+			} else {
+				graphCnt.put(rule, Integer.valueOf(1));
+			}
+			
+		}
+		
+		List<Entry<Rule, Integer>> sortedRules = sortByValues(graphCnt);
+		
+		for(Entry<Rule, Integer> entry : sortedRules){
+			if(entry.getValue()>5){
 				System.out.println("****************************************");
 				System.out.println(entry);
 			}
@@ -451,7 +511,7 @@ public class Learner {
 			rules.addAll(learnedRules);
 		}
 		
-		computeRuleFrequency(rules);
+		computeRuleFrequency2(rules);
 	}
 
 	public static void main(String[] args) {

@@ -8,6 +8,20 @@ public class ColoredDirectedGraph extends DefaultDirectedGraph<Node, ColoredEdge
 		super(ColoredEdge.class);
 	}
 	
+	public ColoredDirectedGraph(ColoredDirectedGraph ... graphs) {
+		super(ColoredEdge.class);
+		
+		for(ColoredDirectedGraph g : graphs){
+			for(Node node : g.vertexSet()){
+				addVertex(node);
+			}
+			
+			for(ColoredEdge edge : g.edgeSet()){
+				addEdge(g.getEdgeSource(edge), g.getEdgeTarget(edge), edge);
+			}
+		}
+	}
+	
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)

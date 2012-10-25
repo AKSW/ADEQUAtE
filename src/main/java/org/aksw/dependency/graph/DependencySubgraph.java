@@ -1,7 +1,10 @@
 package org.aksw.dependency.graph;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
+import org.aksw.dependency.util.Generalization;
 import org.jgrapht.DirectedGraph;
 
 public class DependencySubgraph extends ColoredDirectedSubgraph{
@@ -11,20 +14,25 @@ public class DependencySubgraph extends ColoredDirectedSubgraph{
 		super(base, vertexSubset, edgeSubset);
 	}
 	
-	public ColoredDirectedGraph toGeneralizedGraph(){
+	public Generalization generalize(){
 		DependencyGraph graph = new DependencyGraph();
+		Map<Node, Node> mapping = new HashMap<Node, Node>();
 		
 		for(ColoredEdge edge : edgeSet()){
 			Node source = getEdgeSource(edge);
 			Node target = getEdgeTarget(edge);
 			
-			source = source.asGeneralizedNode();
-			target = target.asGeneralizedNode();
-			graph.addVertex(source);
-			graph.addVertex(target);
-			graph.addEdge(source, target, new ColoredEdge(edge.getLabel(), edge.getColor()));
+			Node generalizedSource = source.asGeneralizedNode();
+			Node generalizedTarget = target.asGeneralizedNode();
+
+			graph.addVertex(generalizedSource);
+			graph.addVertex(generalizedTarget);
+			graph.addEdge(generalizedSource, generalizedTarget, new ColoredEdge(edge.getLabel(), edge.getColor()));
+			
+			mapping.put(source, generalizedSource);
+			mapping.put(target, generalizedTarget);
 		}
 		
-		return graph;
+		return new Generalization(graph, mapping);
 	};
 }

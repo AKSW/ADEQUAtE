@@ -2,6 +2,7 @@ package org.aksw.dependency.graph;
 
 import java.util.Set;
 
+import org.aksw.dependency.util.Generalization;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.graph.DirectedSubgraph;
 
@@ -34,6 +35,6 @@ public class ColoredDirectedSubgraph extends DirectedSubgraph<Node, ColoredEdge>
 		return result;
 	}
 	
-	public ColoredDirectedGraph toGeneralizedGraph(){return null;};
+	public Generalization generalize(){return null;};
 
 }
