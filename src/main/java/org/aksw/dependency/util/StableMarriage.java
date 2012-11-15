@@ -3,6 +3,7 @@ package org.aksw.dependency.util;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -22,10 +23,14 @@ import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
 import com.hp.hpl.jena.query.ResultSet;
 import com.hp.hpl.jena.vocabulary.RDF;
+import com.hp.hpl.jena.vocabulary.RDFS;
 
 public class StableMarriage implements Matcher{
 	
-	public BiMap<Node, Node> computeMatching(ColoredDirectedGraph graph1, ColoredDirectedGraph graph2){
+	private Map<String, String> mapping;
+	
+	public BiMap<Node, Node> computeMatching(ColoredDirectedGraph graph1, ColoredDirectedGraph graph2, Map<String, String> mapping){
+		this.mapping = mapping;
 		//1. build the preferences
 		Map<Node, List<Node>> preferences1 = new HashMap<Node, List<Node>>();
 		Map<Node, List<Node>> preferences2 = new HashMap<Node, List<Node>>();
@@ -34,7 +39,7 @@ public class StableMarriage implements Matcher{
 		List<Node> nodes1 = new ArrayList<Node>();
 		for(Node node : graph1.vertexSet()){
 			if(node.getLabel().startsWith("http:")){
-				if(!RDF.type.getURI().equals(node.getLabel())){
+				if(!RDF.type.getURI().equals(node.getLabel()) && !RDFS.label.getURI().equals(node.getLabel())){
 					nodes1.add(node);
 				}
 			}
@@ -50,6 +55,8 @@ public class StableMarriage implements Matcher{
 				}
 			}
 		}
+		
+		BiMap<Node, Node> manualMatching = applyManualMapping(nodes2, nodes1);
 		
 		for (Node node1 : nodes1) {
 			if(node1.getLabel().startsWith("http:")){
@@ -89,8 +96,31 @@ public class StableMarriage implements Matcher{
 		}
 		//2. compute a stable matching
 		BiMap<Node, Node> matching = match(nodes1, preferences1, preferences2);
+		matching.putAll(manualMatching);
 		return matching;
 		
+	}
+	
+	private BiMap<Node, Node> applyManualMapping(List<Node> nodes1, List<Node> nodes2){
+		BiMap<Node, Node> matching = HashBiMap.create();
+		for(Iterator<Node> it1 = nodes1.iterator(); it1.hasNext();){
+			Node node1 = it1.next();
+			for(Iterator<Node> it2 = nodes2.iterator(); it2.hasNext();){
+				Node node2 = it2.next();
+				if(mapping.containsKey(node1.getLabel())){
+					if(mapping.get(node1.getLabel()).equals(node2.getLabel())){
+						matching.put(node1, node2);
+						it1.remove();
+						it2.remove();
+					}
+				}
+			}
+		}
+		return matching;
+	}
+	
+	public BiMap<Node, Node> computeMatching(ColoredDirectedGraph graph1, ColoredDirectedGraph graph2){
+		return computeMatching(graph1, graph2, new HashMap<String, String>());
 	}
 	
 	private BiMap<Node, Node> match(List<Node> nodes,

@@ -28,10 +28,10 @@ import org.aksw.dependency.converter.DependencyTree2GraphConverter;
 import org.aksw.dependency.converter.SPARQLQuery2GraphConverter;
 import org.aksw.dependency.graph.ColoredDirectedGraph;
 import org.aksw.dependency.graph.ColoredDirectedSubgraph;
-import org.aksw.dependency.graph.DependencyNode;
 import org.aksw.dependency.graph.Node;
 import org.aksw.dependency.util.Generalization;
 import org.aksw.dependency.util.GraphUtils;
+import org.aksw.dependency.util.ManualMapping;
 import org.aksw.dependency.util.Matcher;
 import org.aksw.dependency.util.SimPackGraphWrapper;
 import org.aksw.dependency.util.StableMarriage;
@@ -49,7 +49,6 @@ import com.hp.hpl.jena.query.Query;
 import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.Syntax;
 import com.hp.hpl.jena.sparql.core.Var;
-import com.hp.hpl.jena.vocabulary.RDF;
 
 import edu.stanford.nlp.ling.CoreAnnotations.PartOfSpeechAnnotation;
 import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation;
@@ -70,7 +69,9 @@ public class Learner {
 	private SortedMap<Integer, String> id2SPARQLQueryMap = new TreeMap<Integer, String>();
 	
 	private static final String TRAIN_FILE = "data/qald2-dbpedia-train.xml";
-	private String endpointURL = "http://live.dbpedia.org/sparql";
+	private String endpointURL = "http://dbpedia.org/sparql";
+	
+	private ManualMapping queryId2Mappings = new ManualMapping("resources/keyword-uri-mapping-qald2-dbpedia-train.csv");
 	
 	private void loadTrainData() {
 		logger.info("Reading file containing queries and answers...");
@@ -220,6 +221,10 @@ public class Learner {
 	}
 	
 	public Collection<Rule> computeMappingRules(String question, String queryString){
+		return computeMappingRules(question, queryString, new HashMap<String, String>());
+	}
+	
+	public Collection<Rule> computeMappingRules(String question, String queryString, Map<String, String> manualMapping){
 		//generate the directed graph for the dependencies of the question
 		ColoredDirectedGraph graph1 = generateDependencyGraph(question, true);
 //		GraphUtils.paint(graph1, "Dependency Graph");
@@ -260,7 +265,7 @@ public class Learner {
 		//find the mappings between nodes in dependency graph and SPARQL query graph, if exist
 		//we start from the URIs in the SPARQL query and try to find the corresponding token in the question, makes more sense
 		Matcher matcher = new StableMarriage();
-		BiMap<Node, Node> matching = matcher.computeMatching(graph2, graph1);
+		BiMap<Node, Node> matching = matcher.computeMatching(graph2, graph1, manualMapping);
 		logger.info("Matching:");
 		for(Entry<Node ,Node> entry : matching.entrySet()){
 			logger.info(entry.getKey() + "\t->\t" + entry.getValue());
@@ -382,6 +387,7 @@ public class Learner {
 	
 	private void computeRuleFrequency2(Collection<Rule> rules){
 		Map<Rule, Integer> graphCnt = new HashMap<Rule, Integer>();
+		System.out.println("#Rules:\t" + rules.size());
 		for(Rule rule : rules){
 //			logger.info("Candidate:\n" + rule);
 			int cnt = 0;
@@ -498,17 +504,22 @@ public class Learner {
 		Set<Rule> rules = new HashSet<Rule>();
 
 		for (Entry<Integer, String> id2Question : id2QuestionMap.entrySet()) {
-			int id = id2Question.getKey();if(id==72)continue;
+			int id = id2Question.getKey();if(id<=2)continue;if(id==72)continue;
 			String question = id2Question.getValue();
 			String sparqlQuery = id2SPARQLQueryMap.get(id);
 			Query query = QueryFactory.create(sparqlQuery, Syntax.syntaxARQ);
 			if(!query.isSelectType()){
 				continue;
 			}
+			Map<String, String> mapping = queryId2Mappings.getMapping(id);
+			if(mapping == null){
+				mapping = new HashMap<String, String>();
+			}
 
 			logger.info("###################\t" + id + "\t############################");
-			Collection<Rule> learnedRules = computeMappingRules(question, sparqlQuery);
+			Collection<Rule> learnedRules = computeMappingRules(question, sparqlQuery, mapping);
 			rules.addAll(learnedRules);
+			break;
 		}
 		
 		computeRuleFrequency2(rules);

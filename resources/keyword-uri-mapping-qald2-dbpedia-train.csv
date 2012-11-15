@@ -1,5 +1,6 @@
 QueryID	Keyword	URI
 1	Russian astronauts	yago:RussianCosmonauts
 2	television show Charmed	res:Charmed
-3	married to	dbp:spouse
+3	married	dbp:spouse
+3	daughter	dbo:child
 7	wife	dbo:spouse
