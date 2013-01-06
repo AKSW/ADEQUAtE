@@ -1,8 +1,5 @@
 package org.aksw.dependency;
 
-import java.io.BufferedWriter;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,12 +14,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.aksw.dependency.converter.DependencyTree2GraphConverter;
 import org.aksw.dependency.converter.SPARQLQuery2GraphConverter;
@@ -36,15 +32,14 @@ import org.aksw.dependency.util.Matcher;
 import org.aksw.dependency.util.SimPackGraphWrapper;
 import org.aksw.dependency.util.StableMarriage;
 import org.apache.log4j.Logger;
-import org.w3c.dom.DOMException;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
 
 import simpack.measure.graph.GraphIsomorphism;
 
 import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBasedTable;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Table;
+import com.google.common.collect.Table.Cell;
 import com.hp.hpl.jena.query.Query;
 import com.hp.hpl.jena.query.QueryFactory;
 import com.hp.hpl.jena.query.Syntax;
@@ -64,66 +59,19 @@ import edu.stanford.nlp.util.CoreMap;
 public class Learner {
 	
 	private static final Logger logger = Logger.getLogger(Learner.class);
-
-	private SortedMap<Integer, String> id2QuestionMap = new TreeMap<Integer, String>();
-	private SortedMap<Integer, String> id2SPARQLQueryMap = new TreeMap<Integer, String>();
 	
-	private static final String TRAIN_FILE = "data/qald2-dbpedia-train.xml";
+	private Table<Integer, String, String> trainData = HashBasedTable.create();
+
 	private String endpointURL = "http://dbpedia.org/sparql";
 	
-	private ManualMapping queryId2Mappings = new ManualMapping("resources/keyword-uri-mapping-qald2-dbpedia-train.csv");
+	private boolean useManualMappings = false;
 	
-	private void loadTrainData() {
-		logger.info("Reading file containing queries and answers...");
-		try {
-			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-			DocumentBuilder db = dbf.newDocumentBuilder();
-			Document doc = db.parse(this.getClass().getClassLoader().getResource(TRAIN_FILE).getPath());
-			doc.getDocumentElement().normalize();
-			NodeList questionNodes = doc.getElementsByTagName("question");
-			int id;
-			String question;
-			String query;
-			Set<String> answers;
-
-			for (int i = 0; i < questionNodes.getLength(); i++) {
-				Element questionNode = (Element) questionNodes.item(i);
-				// read question ID
-				id = Integer.valueOf(questionNode.getAttribute("id"));
-				// Read question
-				question = ((Element) questionNode.getElementsByTagName("string").item(0)).getChildNodes().item(0)
-						.getNodeValue().trim();
-				// Read SPARQL query
-				query = ((Element) questionNode.getElementsByTagName("query").item(0)).getChildNodes().item(0)
-						.getNodeValue().trim();
-				if (query.toLowerCase().contains("out of scope")) {
-					continue;
-				}
-
-				id2QuestionMap.put(id, question);
-				id2SPARQLQueryMap.put(id, query);
-			}
-		} catch (DOMException e) {
-			e.printStackTrace();
-		} catch (ParserConfigurationException e) {
-			e.printStackTrace();
-		} catch (SAXException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		StringBuilder sb = new StringBuilder();
-
-		try {
-			BufferedWriter out = new BufferedWriter(new FileWriter("questions.txt"));
-			out.write(sb.toString());
-			out.close();
-		} catch (IOException e) {
-			System.out.println("Exception ");
-
-		}
-		logger.info("Done.");
-	}
+	private ManualMapping manualMapping = new ManualMapping("resources/keyword-uri-mapping-qald2-dbpedia-train.csv");
+	
+	private int currentQueryId;
+	private StringBuilder matchingOutput = new StringBuilder();
+	
+	
 	
 	private String collapseNounPhrases(String question){
 		Properties props = new Properties();
@@ -269,27 +217,28 @@ public class Learner {
 		logger.info("Matching:");
 		for(Entry<Node ,Node> entry : matching.entrySet()){
 			logger.info(entry.getKey() + "\t->\t" + entry.getValue());
+			matchingOutput.append(currentQueryId + "," + entry.getKey() + "," + entry.getValue()).append("\n");
 		}
 		
-		//filter out graphs which do not contain at least one node involved in a matching
-		for(Iterator<ColoredDirectedSubgraph> iter = subgraphs1.iterator(); iter.hasNext();){
-			sub = iter.next();
-			Set<Node> nodes = new HashSet<Node>(sub.vertexSet());
-			nodes.retainAll(matching.keySet());
-			if(nodes.size() == 0){
-				iter.remove();
-			}
-		}
-		for(Iterator<ColoredDirectedSubgraph> iter = subgraphs2.iterator(); iter.hasNext();){
-			sub = iter.next();
-			Set<Node> nodes = new HashSet<Node>(sub.vertexSet());
-			nodes.retainAll(matching.values());
-			if(nodes.size() == 0){
-				iter.remove();
-			}
-		}
-		
-		//1. we only match graphs g1 to graphs g2 if for each source node n_s in g1 there exists the corresponding target node n_t in g2 and vice versa
+//		//filter out graphs which do not contain at least one node involved in a matching
+//		for(Iterator<ColoredDirectedSubgraph> iter = subgraphs1.iterator(); iter.hasNext();){
+//			sub = iter.next();
+//			Set<Node> nodes = new HashSet<Node>(sub.vertexSet());
+//			nodes.retainAll(matching.keySet());
+//			if(nodes.size() == 0){
+//				iter.remove();
+//			}
+//		}
+//		for(Iterator<ColoredDirectedSubgraph> iter = subgraphs2.iterator(); iter.hasNext();){
+//			sub = iter.next();
+//			Set<Node> nodes = new HashSet<Node>(sub.vertexSet());
+//			nodes.retainAll(matching.values());
+//			if(nodes.size() == 0){
+//				iter.remove();
+//			}
+//		}
+//		
+//		//1. we only match graphs g1 to graphs g2 if for each source node n_s in g1 there exists the corresponding target node n_t in g2 and vice versa
 		Set<Rule> learnedRules = new HashSet<Rule>();
 		for(ColoredDirectedSubgraph sub1 : subgraphs1){
 			for(ColoredDirectedSubgraph sub2 : subgraphs2){
@@ -326,6 +275,7 @@ public class Learner {
 				}
 			}
 		}
+		
 		
 		return learnedRules;
 	}
@@ -495,23 +445,24 @@ public class Learner {
         return uri.toString();
 	}
 	
-	
-	
-
-	public void learn() {
-		loadTrainData();
+	public void learn(Table<Integer, String, String> trainData, ManualMapping manualMapping) {
+		this.trainData = trainData;
+		this.manualMapping = manualMapping;
 		
 		Set<Rule> rules = new HashSet<Rule>();
 
-		for (Entry<Integer, String> id2Question : id2QuestionMap.entrySet()) {
-			int id = id2Question.getKey();if(id<=2)continue;if(id==72)continue;
-			String question = id2Question.getValue();
-			String sparqlQuery = id2SPARQLQueryMap.get(id);
+		for (Cell<Integer, String, String> row : trainData.cellSet()){
+			currentQueryId = row.getRowKey();
+			int id = currentQueryId;
+			if(id<=2)continue;if(id==72)continue;
+			String question = row.getColumnKey();
+			String sparqlQuery = row.getValue();
 			Query query = QueryFactory.create(sparqlQuery, Syntax.syntaxARQ);
 			if(!query.isSelectType()){
 				continue;
 			}
-			Map<String, String> mapping = queryId2Mappings.getMapping(id);
+			
+			Map<String, String> mapping = manualMapping.getMapping(id);
 			if(mapping == null){
 				mapping = new HashMap<String, String>();
 			}
@@ -519,10 +470,98 @@ public class Learner {
 			logger.info("###################\t" + id + "\t############################");
 			Collection<Rule> learnedRules = computeMappingRules(question, sparqlQuery, mapping);
 			rules.addAll(learnedRules);
-			break;
+//			break;
 		}
 		
-		computeRuleFrequency2(rules);
+		int threadCount = 6;
+		ExecutorService threadPool = Executors.newFixedThreadPool(threadCount);
+		List<Rule> ruleList = Lists.newArrayList(rules);
+		List<List<Rule>> lists = Lists.partition(ruleList, ruleList.size() / threadCount);
+		List<Future<Map<Rule, Integer>>> list = new ArrayList<Future<Map<Rule, Integer>>>();
+		for (List<Rule> partition : lists) {
+			list.add(threadPool.submit(new RuleCounter(partition)));
+		}
+		for (Future<Map<Rule, Integer>> future : list) {
+			try {
+				Map<Rule, Integer> result = future.get();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			} catch (ExecutionException e) {
+				e.printStackTrace();
+			}
+		}
+//		computeRuleFrequency2(rules);
+	}
+	
+	public void learn(Table<Integer, String, String> trainData, Map<Integer, BiMap<String, String>> manualMapping) {
+		learn(trainData, new ManualMapping(manualMapping));
+	}
+	
+
+	/**
+	 * Learn mapping rules from dependency trees to SPARQL queries.
+	 * @param trainData as table - row format: (id, question, SPARQL query)
+	 */
+	public void learn(Table<Integer, String, String> trainData) {
+		learn(trainData, (ManualMapping)null);
+	}
+	
+	private class RuleCounter implements Callable<Map<Rule, Integer>>{
+		
+		private Collection<Rule> rules;
+		
+		public RuleCounter(Collection<Rule> rules) {
+			this.rules = rules;
+		}
+
+		private Map<Rule, Integer> computeRuleFrequency(Collection<Rule> rules){
+			Map<Rule, Integer> rule2Frequency = new HashMap<Rule, Integer>();
+			System.out.println("#Rules:\t" + rules.size());
+			for(Rule rule : rules){
+//				logger.info("Candidate:\n" + rule);
+				int cnt = 0;
+				Rule r = null;
+				for(Entry<Rule, Integer> entry : rule2Frequency.entrySet()){
+					ColoredDirectedGraph currentGraph = rule.asConnectedGraph();
+					ColoredDirectedGraph graph = entry.getKey().asConnectedGraph();
+					
+					boolean sameNodeSet = containSameNodes(currentGraph, graph);
+					if(!sameNodeSet){
+						continue;
+					}
+					
+					if((currentGraph.edgeSet().size() != graph.edgeSet().size())){
+						continue;
+					}
+					
+					GraphIsomorphism gi = new GraphIsomorphism(SimPackGraphWrapper.getGraph(currentGraph), SimPackGraphWrapper.getGraph(graph));
+					gi.calculate();
+			        r = null;
+			        if(gi.getGraphIsomorphism() == 1){
+//			        	logger.trace("ISOMORPH:\n" + entry.getKey() + "\n" + rule.getSource());
+			        	cnt = entry.getValue()+1;
+			        	r = entry.getKey();
+			        	break;
+			        }
+				}
+				if(cnt > 1){
+					if(r != null){
+						rule2Frequency.remove(r);
+					}
+					rule2Frequency.put(rule, Integer.valueOf(cnt));
+				} else {
+					rule2Frequency.put(rule, Integer.valueOf(1));
+				}
+				
+			}
+			return rule2Frequency;
+		}
+
+		@Override
+		public Map<Rule, Integer> call() throws Exception {
+			return computeRuleFrequency(rules);
+		}
+
 	}
 
 	public static void main(String[] args) {
@@ -551,7 +590,7 @@ public class Learner {
 				"?uri dbp:industry res:Aerospace ." +
 				"?uri dbp:industry res:Nuclear_reactor_technology .}";
 //		new Learner().computeMappingRules(question, queryString);
-		new Learner().learn();
+//		new Learner().learn();
 
 	}
 

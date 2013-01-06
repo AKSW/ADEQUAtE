@@ -22,7 +22,9 @@ public class ManualMapping {
 	
 	private Map<Integer, BiMap<String, String>> queryId2Mapping = new HashMap<Integer, BiMap<String,String>>();
 	
-	public ManualMapping() {}
+	public ManualMapping(Map<Integer, BiMap<String, String>> queryId2Mapping){
+		this.queryId2Mapping = queryId2Mapping;
+	}
 	
 	public ManualMapping(String file) {
 		try {

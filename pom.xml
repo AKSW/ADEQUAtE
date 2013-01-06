@@ -89,14 +89,14 @@
 			<version>20040616</version>
 		</dependency>
 		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>13.0</version>
-		</dependency>
-		<dependency>
 			<groupId>batik</groupId>
 			<artifactId>batik-svggen</artifactId>
 			<version>1.6-1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>14.0-rc1</version>
 		</dependency>
 	</dependencies>
 </project>
