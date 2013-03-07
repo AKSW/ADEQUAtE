@@ -1,3 +1,6 @@
+2,actors/NNS,http://dbpedia.org/ontology/starring
+2,Charmed/VBN,http://dbpedia.org/resource/Charmed
+2,birthdays/NNS,http://dbpedia.org/ontology/birthDate
 3,daughter/NN,http://dbpedia.org/ontology/child
 3,married/VBN to/TO,http://dbpedia.org/property/spouse
 3,Bill_Clinton/NN,http://dbpedia.org/resource/Bill_Clinton

@@ -13,7 +13,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
@@ -29,6 +29,7 @@ import org.aksw.dependency.graph.ColoredDirectedGraph;
 import org.aksw.dependency.graph.ColoredDirectedSubgraph;
 import org.aksw.dependency.graph.ColoredEdge;
 import org.aksw.dependency.graph.DependencySubgraph;
+import org.aksw.dependency.graph.IsoGraph;
 import org.aksw.dependency.graph.Node;
 import org.aksw.dependency.graph.SPARQLGraph;
 import org.aksw.dependency.graph.SPARQLSubgraph;
@@ -40,9 +41,15 @@ import org.jgraph.graph.AttributeMap;
 import org.jgraph.graph.DefaultGraphCell;
 import org.jgraph.graph.GraphConstants;
 import org.jgrapht.DirectedGraph;
+import org.jgrapht.Graph;
 import org.jgrapht.ext.JGraphModelAdapter;
+import org.jgrapht.graph.DirectedSubgraph;
 import org.w3c.dom.DOMImplementation;
 import org.w3c.dom.Document;
+
+import simpack.api.IGraphAccessor;
+import simpack.measure.graph.GraphIsomorphism;
+import simpack.measure.graph.SubgraphIsomorphism;
 
 import com.jgraph.layout.JGraphFacade;
 import com.jgraph.layout.tree.JGraphTreeLayout;
@@ -63,6 +70,24 @@ public class GraphUtils {
 		postorderTraversal(graph, root, null, subgraphs);
 		return subgraphs;
 	}
+	
+	public static <V, E> Collection<DirectedSubgraph<V, E>> getSubgraphs(DirectedGraph<V, E> graph){
+		Set<DirectedSubgraph<V, E>> subgraphs = new HashSet<DirectedSubgraph<V, E>>();
+		V root = findRoot(graph);
+//		postorderTraversal(graph, root, null, subgraphs);
+		return subgraphs;
+	}
+	
+	private static <V, E> V findRoot(DirectedGraph<V, E> graph){
+		for(V vertex : graph.vertexSet()){
+			if(graph.inDegreeOf(vertex) == 0 && graph.outDegreeOf(vertex) > 0){
+				return vertex;
+			}
+		}
+		//Should never happen
+		return null;
+	}
+	
 	
 	private static Node findRoot(ColoredDirectedGraph graph){
 		for(Node vertex : graph.vertexSet()){
@@ -325,7 +350,6 @@ public class GraphUtils {
 		if(sedge == null){
 			allSubgraphs.addAll(newSubgraphs);
 		}
-		System.out.println(source);
 		return newSubgraphs;
 	}
 	
@@ -428,6 +452,7 @@ public class GraphUtils {
 		JGraph jgraph = new JGraph(model);
 		JScrollPane scroller = new JScrollPane(jgraph);
 		JFrame frame = new JFrame(title);
+		frame.setAlwaysOnTop(true);
 		frame.setSize(1000, 1000);
 		frame.add(scroller);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -461,6 +486,72 @@ public class GraphUtils {
 		}
 
 		return out;
+	}
+	
+	public <V,E> boolean contains(Graph<V, E> container, Graph<V, E> containee){
+		if(container.vertexSet().size() < containee.vertexSet().size()){
+			return false;
+		}
+		return false;
+	}
+	
+	public static boolean contains(ColoredDirectedGraph container, ColoredDirectedGraph containee){
+		if(container.vertexSet().size() < containee.vertexSet().size()){
+			return false;
+		}
+		//get all subgraphs of the container graph
+		Collection<ColoredDirectedSubgraph> subgraphs = getSubgraphs(container);
+		//remove all subgraphs 
+		//a) with a number of nodes different to the number of nodes in the containee
+		//b) with a different set of node labels
+		for (Iterator<ColoredDirectedSubgraph> iterator = subgraphs.iterator(); iterator.hasNext();) {
+			ColoredDirectedSubgraph coloredDirectedSubgraph = (ColoredDirectedSubgraph) iterator.next();
+			if(coloredDirectedSubgraph.vertexSet().size() != containee.vertexSet().size()){
+				iterator.remove();
+				continue;
+			}
+			boolean sameNodeLabels = true;
+			for(Node node1 : coloredDirectedSubgraph.vertexSet()){
+				boolean labelContained = false;
+				for(Node node2 : containee.vertexSet()){
+					if(node1.getLabel().equals(node2.getLabel())){
+						labelContained = true;
+						break;
+					}
+				}
+				if(!labelContained){
+					sameNodeLabels = false;
+					break;
+				}
+			}
+			if(!sameNodeLabels){
+				iterator.remove();
+			}
+		}
+		//check for each subgraph if it is isomorph to the containee
+		for (ColoredDirectedSubgraph coloredDirectedSubgraph : subgraphs) {
+			IGraphAccessor g1 = SimPackGraphWrapper.getGraphIdBased(coloredDirectedSubgraph);
+			IGraphAccessor g2 = SimPackGraphWrapper.getGraphIdBased(containee);
+			System.out.println("Nodes G1: " + g1.getNodeSet());
+			System.out.println("Nodes G2: " + g2.getNodeSet());
+	        
+			GraphIsomorphism gi = new GraphIsomorphism(g1, g2);
+			gi.calculate();
+			System.out.println(gi.getSimilarity());
+			
+			g1 = SimPackGraphWrapper.getGraph(coloredDirectedSubgraph);
+			g2 = SimPackGraphWrapper.getGraph(containee);
+			System.out.println("Nodes G1: " + g1.getNodeSet());
+			System.out.println("Nodes G2: " + g2.getNodeSet());
+			gi = new GraphIsomorphism(g1, g2);
+			gi.calculate();
+			System.out.println(gi.getSimilarity());
+			
+			if(gi.getSimilarity() == 1){
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	private static Set<ColoredDirectedSubgraph> getSubsets(ArrayList<ColoredDirectedSubgraph> set) {

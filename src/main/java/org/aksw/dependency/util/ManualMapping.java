@@ -5,11 +5,14 @@ import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.google.common.base.Splitter;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
+import com.google.common.collect.Lists;
 
 public class ManualMapping {
 	
@@ -31,20 +34,24 @@ public class ManualMapping {
 			FileInputStream fstream = new FileInputStream(file);
 			DataInputStream in = new DataInputStream(fstream);
 			BufferedReader br = new BufferedReader(new InputStreamReader(in));
-			br.readLine();//Skip first line
 			String strLine;
 			while ((strLine = br.readLine()) != null) {
-				String[] data = strLine.split("\t");
-				int queryId = Integer.parseInt(data[0].trim());
-				String keyword = data[1].trim();
-				String uri = replacePrefix(data[2].trim());
+				if(strLine.startsWith("#"))continue;
+				List<String> split = Lists.newArrayList(Splitter.on(",").trimResults().omitEmptyStrings().split(strLine));
+				if(split.size() != 3){
+					System.err.println("Invalid format: " + split);
+					continue;
+				}
+				int queryId = Integer.parseInt(split.get(0));
+				String token = split.get(1);
+				String uri = replacePrefix(split.get(2));
 				
 				BiMap<String, String> mapping = queryId2Mapping.get(queryId);
 				if(mapping == null){
 					mapping = HashBiMap.create();
 					queryId2Mapping.put(queryId, mapping);
 				}
-				mapping.put(keyword, uri);
+				mapping.put(token, uri);
 			}
 			in.close();
 		} catch (Exception e) {
@@ -81,7 +88,11 @@ public class ManualMapping {
 	}
 	
 	public static void main(String[] args) {
-		System.out.println(new ManualMapping("resources/keyword-uri-mapping-qald2-dbpedia-train.csv"));
+		ManualMapping m = new ManualMapping("src/main/resources/data/qald2-dbpedia-train-node_matching.txt");
+		Map<String, String> mapping = m.getMapping(2);
+		System.out.println(mapping);
+		System.out.println(mapping.containsKey("birthdays/NNS"));
+		System.out.println("birthdays/NNS".hashCode());
 	}
 
 }

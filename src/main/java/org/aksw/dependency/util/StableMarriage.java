@@ -105,10 +105,12 @@ public class StableMarriage implements Matcher{
 		BiMap<Node, Node> matching = HashBiMap.create();
 		for(Iterator<Node> it1 = nodes1.iterator(); it1.hasNext();){
 			Node node1 = it1.next();
-			for(Iterator<Node> it2 = nodes2.iterator(); it2.hasNext();){
-				Node node2 = it2.next();
-				if(mapping.containsKey(node1.getLabel())){
-					if(mapping.get(node1.getLabel()).equals(node2.getLabel())){
+			String label1 = node1.toString();
+			if(mapping.containsKey(label1)){
+				for(Iterator<Node> it2 = nodes2.iterator(); it2.hasNext();){
+					Node node2 = it2.next();
+					String label2 = node2.toString();
+					if(mapping.get(label1).equals(label2)){
 						matching.put(node1, node2);
 						it1.remove();
 						it2.remove();

@@ -62,15 +62,16 @@ public class Learner {
 	
 	private Table<Integer, String, String> trainData = HashBasedTable.create();
 
-	private String endpointURL = "http://dbpedia.org/sparql";
-	
-	private boolean useManualMappings = false;
+	private String endpointURL;
 	
 	private ManualMapping manualMapping = new ManualMapping("resources/keyword-uri-mapping-qald2-dbpedia-train.csv");
 	
 	private int currentQueryId;
 	private StringBuilder matchingOutput = new StringBuilder();
 	
+	public Learner(String endpointURL) {
+		this.endpointURL = endpointURL;
+	}
 	
 	
 	private String collapseNounPhrases(String question){
@@ -89,17 +90,40 @@ public class Learner {
 		//we expect only one sentence as  question
 		CoreMap annotatedSentence = sentences.get(0);
 		StringBuilder sb = new StringBuilder();
-		List<String> nounTags = Arrays.asList(new String[]{"NN", "NNS", "NNP", "NNPS"});
+		List<String> nounTags = Arrays.asList(new String[]{"NN", "NNS"});
+		List<String> properNounTags = Arrays.asList(new String[]{"NNP", "NNPS"});
 		String nounPhrase = "";
+		boolean properNoun = false;
+		boolean noun = false;
 		for (CoreLabel token : annotatedSentence.get(TokensAnnotation.class)) {
 			// this is the text of the token
 			String word = token.get(TextAnnotation.class);
 			// this is the POS tag of the token
 			String pos = token.get(PartOfSpeechAnnotation.class);
+			
 			if(nounTags.contains(pos)){
-				if(!nounPhrase.isEmpty()){
+				if(noun){
 					nounPhrase += "_";
+				} else {
+					if(!nounPhrase.isEmpty()){
+						sb.append(nounPhrase + " ");
+						nounPhrase = "";
+					}
 				}
+				noun = true;
+				properNoun = false;
+				nounPhrase += word;
+			} else if(properNounTags.contains(pos)){
+				if(properNoun){
+					nounPhrase += "_";
+				} else {
+					if(!nounPhrase.isEmpty()){
+						sb.append(nounPhrase + " ");
+						nounPhrase = "";
+					}
+				}
+				properNoun = true;
+				noun = false;
 				nounPhrase += word;
 			} else {
 				if(!nounPhrase.isEmpty()){
@@ -107,6 +131,8 @@ public class Learner {
 					nounPhrase = "";
 				}
 				sb.append(word + " ");
+				noun = false;
+				properNoun = false;
 			}
 			
 			
@@ -114,7 +140,7 @@ public class Learner {
 		return sb.toString().trim();
 	}
 	
-	private ColoredDirectedGraph generateDependencyGraph(String question, boolean pruned){
+	public ColoredDirectedGraph generateDependencyGraph(String question, boolean pruned){
 		//in a preprocessing step we have to check for noun phrases and combine then, otherwise the dependency graph will be useless
 		System.out.println("Original Question: " + question);
 		question = collapseNounPhrases(question);
@@ -160,7 +186,7 @@ public class Learner {
 		return null;
 	}
 	
-	private ColoredDirectedGraph generateSPARQLQueryGraph(String queryString){
+	public ColoredDirectedGraph generateSPARQLQueryGraph(String queryString){
 		SPARQLQuery2GraphConverter sparqlConverter = new SPARQLQuery2GraphConverter(endpointURL);
 		Query query = QueryFactory.create(queryString, Syntax.syntaxARQ);
 		List<Var> projectVars = query.getProjectVars();//TODO How to handle it, when there are more than 1 variables?
@@ -280,69 +306,12 @@ public class Learner {
 		return learnedRules;
 	}
 	
-	private void computeRuleFrequency(Collection<Rule> rules){
-		Map<Rule, Integer> graphCnt = new HashMap<Rule, Integer>();
+	private Map<Rule, Integer> clusterRules(Collection<Rule> rules){
+		Map<Rule, Integer> rule2Frequency = new HashMap<Rule, Integer>();
 		for(Rule rule : rules){
-//			logger.info("Candidate:\n" + rule);
 			int cnt = 0;
 			Rule r = null;
-			for(Entry<Rule, Integer> entry : graphCnt.entrySet()){
-				ColoredDirectedGraph source = entry.getKey().getSource();
-				ColoredDirectedGraph target = entry.getKey().getTarget();
-				
-				ColoredDirectedGraph currentSource = rule.getSource();
-				ColoredDirectedGraph currentTarget = rule.getTarget();
-				
-				boolean sameNodeSet = containSameNodes(source, currentSource) && containSameNodes(target, currentTarget);
-				if(!sameNodeSet){
-					continue;
-				}
-				
-				if((source.edgeSet().size() != currentSource.edgeSet().size()) && (target.edgeSet().size() != currentTarget.edgeSet().size())){
-					continue;
-				}
-				
-				GraphIsomorphism sourceGi = new GraphIsomorphism(SimPackGraphWrapper.getGraph(source), SimPackGraphWrapper.getGraph(currentSource));
-				sourceGi.calculate();
-				GraphIsomorphism targetGi = new GraphIsomorphism(SimPackGraphWrapper.getGraph(target), SimPackGraphWrapper.getGraph(currentTarget));
-				targetGi.calculate();
-		        r = null;
-		        if(sourceGi.getGraphIsomorphism() == 1 && targetGi.getGraphIsomorphism() == 1){
-//		        	logger.trace("ISOMORPH:\n" + entry.getKey() + "\n" + rule.getSource());
-		        	cnt = entry.getValue()+1;
-		        	r = entry.getKey();
-		        	break;
-		        }
-			}
-			if(cnt > 1){
-				if(r != null){
-					graphCnt.remove(r);
-				}
-				graphCnt.put(rule, Integer.valueOf(cnt));
-			} else {
-				graphCnt.put(rule, Integer.valueOf(1));
-			}
-			
-		}
-		
-		List<Entry<Rule, Integer>> sortedRules = sortByValues(graphCnt);
-		
-		for(Entry<Rule, Integer> entry : sortedRules){
-			if(entry.getValue()>5){
-				System.out.println("****************************************");
-				System.out.println(entry);
-			}
-		}
-	}
-	
-	private void computeRuleFrequency2(Collection<Rule> rules){
-		Map<Rule, Integer> graphCnt = new HashMap<Rule, Integer>();
-		System.out.println("#Rules:\t" + rules.size());
-		for(Rule rule : rules){
-//			logger.info("Candidate:\n" + rule);
-			int cnt = 0;
-			Rule r = null;
-			for(Entry<Rule, Integer> entry : graphCnt.entrySet()){
+			for(Entry<Rule, Integer> entry : rule2Frequency.entrySet()){
 				ColoredDirectedGraph currentGraph = rule.asConnectedGraph();
 				ColoredDirectedGraph graph = entry.getKey().asConnectedGraph();
 				
@@ -355,11 +324,14 @@ public class Learner {
 					continue;
 				}
 				
+//				GraphIsomorphismInspector<ColoredDirectedGraph> iso = AdaptiveIsomorphismInspectorFactory.
+//						createIsomorphismInspector(currentGraph, graph, null, null);
+//				System.out.println(iso.isIsomorphic());
+				
 				GraphIsomorphism gi = new GraphIsomorphism(SimPackGraphWrapper.getGraph(currentGraph), SimPackGraphWrapper.getGraph(graph));
 				gi.calculate();
 		        r = null;
 		        if(gi.getGraphIsomorphism() == 1){
-//		        	logger.trace("ISOMORPH:\n" + entry.getKey() + "\n" + rule.getSource());
 		        	cnt = entry.getValue()+1;
 		        	r = entry.getKey();
 		        	break;
@@ -367,23 +339,62 @@ public class Learner {
 			}
 			if(cnt > 1){
 				if(r != null){
-					graphCnt.remove(r);
+					rule2Frequency.remove(r);
 				}
-				graphCnt.put(rule, Integer.valueOf(cnt));
+				rule2Frequency.put(rule, Integer.valueOf(cnt));
 			} else {
-				graphCnt.put(rule, Integer.valueOf(1));
+				rule2Frequency.put(rule, Integer.valueOf(1));
 			}
 			
 		}
-		
-		List<Entry<Rule, Integer>> sortedRules = sortByValues(graphCnt);
-		
-		for(Entry<Rule, Integer> entry : sortedRules){
-			if(entry.getValue()>5){
-				System.out.println("****************************************");
-				System.out.println(entry);
+		return rule2Frequency;
+	}
+	
+	private Map<Rule, Integer> computeRuleFrequency(Map<Rule, Integer> rules){
+		return computeRuleFrequency(rules, new HashMap<Rule, Integer>());
+	}
+	
+	private Map<Rule, Integer> computeRuleFrequency(Map<Rule, Integer> rules1, Map<Rule, Integer> merge){
+		for (Entry<Rule, Integer> entry1 : rules1.entrySet()) {
+			Rule rule1 = entry1.getKey();
+			Integer frequency1 = entry1.getValue();
+			
+			int totalFrequency = frequency1;
+			Rule rule = null;
+			for (Entry<Rule, Integer> entry2 : merge.entrySet()) {
+				rule = null;
+				Rule rule2 = entry2.getKey();
+				Integer frequency2 = entry2.getValue();
+				
+				ColoredDirectedGraph graph1 = rule1.asConnectedGraph();
+				ColoredDirectedGraph graph2 = rule2.asConnectedGraph();
+				
+				boolean sameNodeSet = containSameNodes(graph1, graph2);
+				if(!sameNodeSet){
+					continue;
+				}
+				
+				if((graph1.edgeSet().size() != graph2.edgeSet().size())){
+					continue;
+				}
+				
+				GraphIsomorphism gi = new GraphIsomorphism(SimPackGraphWrapper.getGraph(graph1), SimPackGraphWrapper.getGraph(graph2));
+				gi.calculate();
+				
+		        if(gi.getGraphIsomorphism() == 1){
+//		        	logger.trace("ISOMORPH:\n" + entry.getKey() + "\n" + rule.getSource());
+		        	totalFrequency = frequency1 + frequency2;
+		        	rule = rule2;
+		        	break;
+		        }
+			}
+			if(rule != null){
+				merge.put(rule, totalFrequency);
+			} else {
+				merge.put(rule1, frequency1);
 			}
 		}
+		return merge;
 	}
 	
 	protected <K, V extends Comparable<V>> List<Entry<K, V>> sortByValues(Map<K, V> map){
@@ -445,56 +456,162 @@ public class Learner {
         return uri.toString();
 	}
 	
-	public void learn(Table<Integer, String, String> trainData, ManualMapping manualMapping) {
+	public Map<Rule, Integer> learn(Table<Integer, String, String> trainData, ManualMapping manualMapping) {
 		this.trainData = trainData;
 		this.manualMapping = manualMapping;
 		
 		Set<Rule> rules = new HashSet<Rule>();
+		ExecutorService threadPool = Executors.newFixedThreadPool(4);//Runtime.getRuntime().availableProcessors());
+		List<Future<Collection<Rule>>> futures = new ArrayList<Future<Collection<Rule>>>();
 
 		for (Cell<Integer, String, String> row : trainData.cellSet()){
 			currentQueryId = row.getRowKey();
 			int id = currentQueryId;
-			if(id<=2)continue;if(id==72)continue;
-			String question = row.getColumnKey();
-			String sparqlQuery = row.getValue();
+//			if(id<=2)continue;if(id==72)continue;
+			final String question = row.getColumnKey();
+			final String sparqlQuery = row.getValue();
 			Query query = QueryFactory.create(sparqlQuery, Syntax.syntaxARQ);
 			if(!query.isSelectType()){
 				continue;
 			}
 			
-			Map<String, String> mapping = manualMapping.getMapping(id);
-			if(mapping == null){
+			final Map<String, String> mapping;
+			if(manualMapping == null){
 				mapping = new HashMap<String, String>();
+			} else {
+				if(manualMapping.containsMapping(id)){
+					mapping = manualMapping.getMapping(id);
+				} else {
+					mapping = new HashMap<String, String>();
+				}
 			}
 
 			logger.info("###################\t" + id + "\t############################");
-			Collection<Rule> learnedRules = computeMappingRules(question, sparqlQuery, mapping);
-			rules.addAll(learnedRules);
+//			Collection<Rule> learnedRules = computeMappingRules(question, sparqlQuery, mapping);
+//			rules.addAll(learnedRules);
+			futures.add(threadPool.submit(new Callable<Collection<Rule>>() {
+
+				@Override
+				public Collection<Rule> call() throws Exception {
+					return computeMappingRules(question, sparqlQuery, mapping);
+				}
+			}));
+		
 //			break;
 		}
-		
-		int threadCount = 6;
-		ExecutorService threadPool = Executors.newFixedThreadPool(threadCount);
-		List<Rule> ruleList = Lists.newArrayList(rules);
-		List<List<Rule>> lists = Lists.partition(ruleList, ruleList.size() / threadCount);
-		List<Future<Map<Rule, Integer>>> list = new ArrayList<Future<Map<Rule, Integer>>>();
-		for (List<Rule> partition : lists) {
-			list.add(threadPool.submit(new RuleCounter(partition)));
-		}
-		for (Future<Map<Rule, Integer>> future : list) {
+		for (Future<Collection<Rule>> future : futures) {
 			try {
-				Map<Rule, Integer> result = future.get();
+				rules.addAll(future.get());
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			} catch (ExecutionException e) {
 				e.printStackTrace();
 			}
 		}
-//		computeRuleFrequency2(rules);
+		threadPool.shutdown();
+		logger.info("Got " + rules.size() + " rules.");
+		for (Rule rule : rules) {
+			System.out.println(rule);
+		}
+		Map<Rule, Integer> clusteredRules = clusterRules(rules);
+		List<Entry<Rule, Integer>> sortedRules = sortByValues(clusteredRules);
+		printTopKEntries(sortedRules, 5);
+		return clusteredRules;
 	}
 	
-	public void learn(Table<Integer, String, String> trainData, Map<Integer, BiMap<String, String>> manualMapping) {
-		learn(trainData, new ManualMapping(manualMapping));
+	private <K, V> void printTopKEntries(List<Entry<K, V>> entries, int k){
+		for(int i = 0; i < Math.min(k, entries.size()); i++){
+			logger.info(entries.get(i));
+		}
+	}
+	
+	private void clusterRulesMultithreaded(Collection<Rule> rules){
+		int threadCount = 8;
+		ExecutorService threadPool = Executors.newFixedThreadPool(threadCount);
+		List<Rule> ruleList = Lists.newArrayList(rules);
+		List<List<Rule>> lists = Lists.partition(ruleList, ruleList.size()/threadCount+1);
+		List<Map<Rule, Integer>> mapList = new ArrayList<Map<Rule, Integer>>();
+		for(List<Rule> l : lists){
+			Map<Rule, Integer> map = new HashMap<Rule, Integer>();
+			for(Rule r : l){
+				map.put(r, 1);
+			}
+			mapList.add(map);
+		}
+		List<Future<Map<Rule, Integer>>> futureList = new ArrayList<Future<Map<Rule, Integer>>>();
+		for (final Map<Rule, Integer> partition : mapList) {
+			futureList.add(threadPool.submit(new Callable<Map<Rule, Integer>>() {
+
+				@Override
+				public Map<Rule, Integer> call() throws Exception {
+					return computeRuleFrequency(partition);
+				}
+			}));
+		}
+		mapList.clear();
+		for (Future<Map<Rule, Integer>> future : futureList) {
+			try {
+				Map<Rule, Integer> result = future.get();
+				mapList.add(result);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			} catch (ExecutionException e) {
+				e.printStackTrace();
+			}
+		}
+		futureList.clear();
+		while(mapList.size() > 1){
+			for(int fromIndex = 0; fromIndex < mapList.size(); fromIndex+=2){
+				final List<Map<Rule, Integer>> sub = mapList.subList(fromIndex, Math.min(fromIndex+2, mapList.size()));
+				futureList.add(threadPool.submit(new Callable<Map<Rule, Integer>>() {
+					@Override
+					public Map<Rule, Integer> call() throws Exception {
+						if(sub.size() == 2){
+							return computeRuleFrequency(sub.get(0), sub.get(1));
+						} else {
+							return sub.get(0);
+						}
+						
+					}
+				}));
+			}
+//			List<List<Map<Rule, Integer>>> partitionList = Lists.partition(new ArrayList<Map<Rule, Integer>>(mapList), 2);
+//			for (final List<Map<Rule, Integer>> partition : partitionList) {
+//				futureList.add(threadPool.submit(new Callable<Map<Rule, Integer>>() {
+//
+//					@Override
+//					public Map<Rule, Integer> call() throws Exception {
+//						if(partition.size() == 2){
+//							System.out.println("Calling:" + partition.get(0).hashCode() + "--" + partition.get(1).hashCode());
+//							return computeRuleFrequency(partition.get(0), partition.get(1));
+//						} else {
+//							return partition.get(0);
+//						}
+//						
+//					}
+//				}));
+//			}
+			List<Map<Rule, Integer>> tmp = new ArrayList<Map<Rule,Integer>>();
+			for (Future<Map<Rule, Integer>> future : futureList) {
+				try {
+					Map<Rule, Integer> result = future.get();
+					tmp.add(result);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				} catch (ExecutionException e) {
+					e.printStackTrace();
+				}
+			}
+			mapList.clear();
+			mapList.addAll(tmp);
+			futureList.clear();
+		}
+		List<Entry<Rule, Integer>> sorted = sortByValues(mapList.get(0));
+		System.out.println(sorted.get(0));
+	}
+	
+	public Map<Rule, Integer> learn(Table<Integer, String, String> trainData, Map<Integer, BiMap<String, String>> manualMapping) {
+		return learn(trainData, new ManualMapping(manualMapping));
 	}
 	
 
@@ -502,96 +619,17 @@ public class Learner {
 	 * Learn mapping rules from dependency trees to SPARQL queries.
 	 * @param trainData as table - row format: (id, question, SPARQL query)
 	 */
-	public void learn(Table<Integer, String, String> trainData) {
-		learn(trainData, (ManualMapping)null);
+	public Map<Rule, Integer> learn(Table<Integer, String, String> trainData) {
+		return learn(trainData, (ManualMapping)null);
 	}
 	
-	private class RuleCounter implements Callable<Map<Rule, Integer>>{
-		
-		private Collection<Rule> rules;
-		
-		public RuleCounter(Collection<Rule> rules) {
-			this.rules = rules;
-		}
-
-		private Map<Rule, Integer> computeRuleFrequency(Collection<Rule> rules){
-			Map<Rule, Integer> rule2Frequency = new HashMap<Rule, Integer>();
-			System.out.println("#Rules:\t" + rules.size());
-			for(Rule rule : rules){
-//				logger.info("Candidate:\n" + rule);
-				int cnt = 0;
-				Rule r = null;
-				for(Entry<Rule, Integer> entry : rule2Frequency.entrySet()){
-					ColoredDirectedGraph currentGraph = rule.asConnectedGraph();
-					ColoredDirectedGraph graph = entry.getKey().asConnectedGraph();
-					
-					boolean sameNodeSet = containSameNodes(currentGraph, graph);
-					if(!sameNodeSet){
-						continue;
-					}
-					
-					if((currentGraph.edgeSet().size() != graph.edgeSet().size())){
-						continue;
-					}
-					
-					GraphIsomorphism gi = new GraphIsomorphism(SimPackGraphWrapper.getGraph(currentGraph), SimPackGraphWrapper.getGraph(graph));
-					gi.calculate();
-			        r = null;
-			        if(gi.getGraphIsomorphism() == 1){
-//			        	logger.trace("ISOMORPH:\n" + entry.getKey() + "\n" + rule.getSource());
-			        	cnt = entry.getValue()+1;
-			        	r = entry.getKey();
-			        	break;
-			        }
-				}
-				if(cnt > 1){
-					if(r != null){
-						rule2Frequency.remove(r);
-					}
-					rule2Frequency.put(rule, Integer.valueOf(cnt));
-				} else {
-					rule2Frequency.put(rule, Integer.valueOf(1));
-				}
-				
-			}
-			return rule2Frequency;
-		}
-
-		@Override
-		public Map<Rule, Integer> call() throws Exception {
-			return computeRuleFrequency(rules);
-		}
-
+	public Map<Rule, Integer> learn(String question, String sparqlQuery, Map<Integer, BiMap<String, String>> manualMapping) {
+		Table<Integer, String, String> trainData = HashBasedTable.create();
+		trainData.put(1, question, sparqlQuery);
+		return learn(trainData, new ManualMapping(manualMapping));
 	}
-
-	public static void main(String[] args) {
-		String question = "What is the highest mountain in Germany?";
-		String queryString = "PREFIX dbo: <http://dbpedia.org/ontology/> PREFIX res: <http://dbpedia.org/resource/> "  
-				+ "SELECT DISTINCT ?uri ?string WHERE {"
-				+ " ?uri a dbo:Mountain ." + " ?uri dbo:locatedInArea res:Germany ."
-				+ " ?uri dbo:elevation ?elevation ." + "} ORDER BY DESC(?elevation) LIMIT 1";
-		
-//		question = "Give me all soccer clubs in Premier League.";
-//		queryString = "PREFIX dbo: <http://dbpedia.org/ontology/> PREFIX res: <http://dbpedia.org/resource/> " + 
-//		"SELECT DISTINCT ?uri WHERE {?uri a dbo:SoccerClub. ?uri dbo:league res:Premier_League}";
-//		
-//		question = "Give me all episodes of the first season of the HBO television series The Sopranos!";
-//		queryString = "PREFIX dbo: <http://dbpedia.org/ontology/> PREFIX res: <http://dbpedia.org/resource/> " + 
-//		"SELECT DISTINCT ?uri WHERE {?uri dbo:series res:The_Sopranos  . ?uri dbo:seasonNumber 1 .}";
-
-		question = "Which companies work in the aerospace industry as well as on nuclear reactor technology?";
-		queryString = "PREFIX dbo:  <http://dbpedia.org/ontology/> " +
-				"PREFIX dbp: <http://dbpedia.org/property/> " +
-				"PREFIX res:  <http://dbpedia.org/resource/> " +
-				"PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> " +
-				"PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> " +
-				"SELECT DISTINCT ?uri WHERE {" +
-				"?uri rdf:type dbo:Company  ." +
-				"?uri dbp:industry res:Aerospace ." +
-				"?uri dbp:industry res:Nuclear_reactor_technology .}";
-//		new Learner().computeMappingRules(question, queryString);
-//		new Learner().learn();
-
+	
+	public Map<Rule, Integer> learn(String question, String sparqlQuery) {
+		return learn(question, sparqlQuery, null);
 	}
-
 }
