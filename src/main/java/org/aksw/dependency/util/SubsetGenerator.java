@@ -27,7 +27,7 @@ public class SubsetGenerator {
 
             for (int i = 1; i < subsetSize; i++) {
                 for (List<Node> node : oldQueue) {
-                    //get remainig objects
+                    //get remaining objects
                     for(Node n: set)
                     {
                         if(!node.contains(n))

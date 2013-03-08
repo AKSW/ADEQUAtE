@@ -7,6 +7,7 @@ package org.aksw.dependency.graph.matching;
 import java.util.ArrayList;
 import java.util.List;
 import org.aksw.dependency.graph.ColoredDirectedGraph;
+import org.aksw.dependency.graph.ColoredEdge;
 import org.aksw.dependency.graph.Node;
 import org.aksw.dependency.util.SubsetGenerator;
 
@@ -82,22 +83,22 @@ public class NaiveSubgraphMatcher implements SubGraphMatcher {
         
         for (int i = 0; i <= 2; i++) {
             sNodes.add(new Node(i + ""));
-            large.addVertex(sNodes.get(i));
+            small.addVertex(sNodes.get(i));
         }
         
-        large.addEdge(lNodes.get(0), lNodes.get(1));
-        large.addEdge(lNodes.get(1), lNodes.get(2));
-        large.addEdge(lNodes.get(2), lNodes.get(0));
+        large.addEdge(lNodes.get(0), lNodes.get(1), new ColoredEdge("edge", "red"));
+        large.addEdge(lNodes.get(1), lNodes.get(2), new ColoredEdge("edge", "red"));
+        large.addEdge(lNodes.get(2), lNodes.get(0), new ColoredEdge("edge", "red"));
 
-        large.addEdge(lNodes.get(3), lNodes.get(4));
-        large.addEdge(lNodes.get(4), lNodes.get(5));
-        large.addEdge(lNodes.get(5), lNodes.get(3));
+        large.addEdge(lNodes.get(3), lNodes.get(4), new ColoredEdge("edge", "red"));
+        large.addEdge(lNodes.get(4), lNodes.get(5), new ColoredEdge("edge", "red"));
+        large.addEdge(lNodes.get(5), lNodes.get(3), new ColoredEdge("edge", "red"));
         
-        large.addEdge(lNodes.get(2), lNodes.get(3));
+        large.addEdge(lNodes.get(2), lNodes.get(3), new ColoredEdge("edge", "red"));
         
-        small.addEdge(sNodes.get(0), sNodes.get(1));
-        small.addEdge(sNodes.get(1), sNodes.get(2));
-        small.addEdge(sNodes.get(2), sNodes.get(0));
+        small.addEdge(sNodes.get(0), sNodes.get(1), new ColoredEdge("edge", "red"));
+        small.addEdge(sNodes.get(1), sNodes.get(2), new ColoredEdge("edge", "red"));
+        small.addEdge(sNodes.get(2), sNodes.get(0), new ColoredEdge("edge", "red"));
         
         System.out.println(new NaiveSubgraphMatcher().getMatchingSubgraphs(large, small));
     }
