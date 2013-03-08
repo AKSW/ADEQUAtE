@@ -77,14 +77,14 @@ public class NaiveSubgraphMatcher implements SubGraphMatcher {
         
         List<Node> lNodes = new ArrayList<>();
         for (int i = 0; i <= 6; i++) {
-            lNodes.add(new Node(i + ""));
+            lNodes.add(new Node(i + "", "A"));
             large.addVertex(lNodes.get(i));
         }
         
         List<Node> sNodes = new ArrayList<>();
         
         for (int i = 0; i <= 2; i++) {
-            sNodes.add(new Node(i + ""));
+            sNodes.add(new Node(i + "", "A"));
             small.addVertex(sNodes.get(i));
         }
         
