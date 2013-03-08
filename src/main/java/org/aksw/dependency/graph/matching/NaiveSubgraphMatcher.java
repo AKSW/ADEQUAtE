@@ -5,7 +5,9 @@
 package org.aksw.dependency.graph.matching;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.aksw.dependency.graph.ColoredDirectedGraph;
 import org.aksw.dependency.graph.ColoredEdge;
 import org.aksw.dependency.graph.Node;
@@ -18,11 +20,11 @@ import org.aksw.dependency.util.SubsetGenerator;
 public class NaiveSubgraphMatcher implements SubGraphMatcher {
 
     @Override
-    public List<List<Node>> getMatchingSubgraphs(ColoredDirectedGraph largerGraph, ColoredDirectedGraph smallerGraph) {
+    public Set<Set<Node>> getMatchingSubgraphs(ColoredDirectedGraph largerGraph, ColoredDirectedGraph smallerGraph) {
         List<Node> largerGraphNodes = new ArrayList<>(largerGraph.vertexSet());
         List<Node> smallerGraphNodes = new ArrayList<>(smallerGraph.vertexSet());
 
-        List<List<Node>> result = new ArrayList<List<Node>>();
+        Set<Set<Node>> result = new HashSet<>();
         if (largerGraph.vertexSet().size() < smallerGraph.vertexSet().size()) {
             return result;
         }
@@ -33,7 +35,7 @@ public class NaiveSubgraphMatcher implements SubGraphMatcher {
         for (List<Node> large : largeGraphSubsets) {
             for (List<Node> small : smallGraphSubsets) {
                 if (matches(largerGraph, smallerGraph, large, small)) {
-                    result.add(large);
+                    result.add(new HashSet<>(large));
                 }
             }
         }
@@ -49,7 +51,7 @@ public class NaiveSubgraphMatcher implements SubGraphMatcher {
 
         //test 1: node labels
         for (int i = 0; i < smallerGraphNodes.size(); i++) {
-            if (!smallerGraphNodes.get(i).equals(largerGraphNodes.get(i))) {
+            if (!smallerGraphNodes.get(i).getLabel().equals(largerGraphNodes.get(i).getLabel())) {
                 return false;
             }
         }
@@ -66,7 +68,7 @@ public class NaiveSubgraphMatcher implements SubGraphMatcher {
             }
         }
 
-        return false;
+        return true;
     }
 
     public static void main(String args[]) {

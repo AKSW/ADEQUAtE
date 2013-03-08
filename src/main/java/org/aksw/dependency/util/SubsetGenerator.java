@@ -26,6 +26,7 @@ public class SubsetGenerator {
             }
 
             for (int i = 1; i < subsetSize; i++) {
+                newQueue = new ArrayList<>();
                 for (List<Node> node : oldQueue) {
                     //get remaining objects
                     for(Node n: set)
@@ -53,6 +54,4 @@ public class SubsetGenerator {
         }           
         System.out.println(getSubsets(set, 2));
     }
-
-
 }
