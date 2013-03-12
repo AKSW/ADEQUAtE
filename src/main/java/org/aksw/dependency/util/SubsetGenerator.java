@@ -5,7 +5,9 @@
 package org.aksw.dependency.util;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import org.aksw.dependency.graph.Node;
 
 /**
@@ -14,26 +16,26 @@ import org.aksw.dependency.graph.Node;
  */
 public class SubsetGenerator {
 
-    public static List<List<Node>> getSubsets(List<Node> set, int subsetSize) {
-        List<List<Node>> oldQueue = new ArrayList<>();
-        List<List<Node>> newQueue = new ArrayList<>();
+    public static Set<Set<Node>> getSubsets(Set<Node> set, int subsetSize) {
+        Set<Set<Node>> oldQueue = new HashSet<>();
+        Set<Set<Node>> newQueue = new HashSet<>();
 
         if (subsetSize > 0 && subsetSize <= set.size()) {
             for (Node node : set) {
-                List l = new ArrayList();
+                Set<Node> l = new HashSet<>();
                 l.add(node);
                 oldQueue.add(l);
             }
 
             for (int i = 1; i < subsetSize; i++) {
-                newQueue = new ArrayList<>();
-                for (List<Node> node : oldQueue) {
+                newQueue = new HashSet<>();
+                for (Set<Node> node : oldQueue) {
                     //get remaining objects
                     for(Node n: set)
                     {
                         if(!node.contains(n))
                         {
-                            List copy = new ArrayList(node);
+                            Set<Node> copy = new HashSet<>(node);
                             copy.add(n);
                             newQueue.add(copy);
                         }
@@ -47,7 +49,7 @@ public class SubsetGenerator {
     
     public static void main(String args[])
     {
-        List<Node> set = new ArrayList<>();
+        Set<Node> set = new HashSet<>();
         for(int i=0; i<10; i++)
         {
             set.add(new Node(i+""));
