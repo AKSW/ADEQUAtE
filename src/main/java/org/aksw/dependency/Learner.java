@@ -397,7 +397,7 @@ public class Learner {
 		return merge;
 	}
 	
-	protected <K, V extends Comparable<V>> List<Entry<K, V>> sortByValues(Map<K, V> map){
+	public static <K, V extends Comparable<V>> List<Entry<K, V>> sortByValues(Map<K, V> map){
 		List<Entry<K, V>> entries = new ArrayList<Entry<K, V>>(map.entrySet());
         Collections.sort(entries, new Comparator<Entry<K, V>>() {
 
@@ -510,12 +510,9 @@ public class Learner {
 		}
 		threadPool.shutdown();
 		logger.info("Got " + rules.size() + " rules.");
-		for (Rule rule : rules) {
-			System.out.println(rule);
-		}
 		Map<Rule, Integer> clusteredRules = clusterRules(rules);
 		List<Entry<Rule, Integer>> sortedRules = sortByValues(clusteredRules);
-		printTopKEntries(sortedRules, 5);
+//		printTopKEntries(sortedRules, 5);
 		return clusteredRules;
 	}
 	
@@ -607,7 +604,6 @@ public class Learner {
 			futureList.clear();
 		}
 		List<Entry<Rule, Integer>> sorted = sortByValues(mapList.get(0));
-		System.out.println(sorted.get(0));
 	}
 	
 	public Map<Rule, Integer> learn(Table<Integer, String, String> trainData, Map<Integer, BiMap<String, String>> manualMapping) {

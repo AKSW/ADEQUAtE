@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -19,6 +20,9 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.aksw.dependency.graph.ColoredDirectedGraph;
+import org.aksw.dependency.graph.Node;
+import org.aksw.dependency.graph.matching.NaiveSubgraphMatcher;
+import org.aksw.dependency.graph.matching.SubGraphMatcher;
 import org.aksw.dependency.util.GraphUtils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -108,6 +112,25 @@ public class QALD2TrainTest {
 	public void testRuleLearningWithManualMappingInput() {
 		Learner learner = new Learner(endpointURL);
 		Map<Rule, Integer> rules = learner.learn(trainData, manualMapping);
+	}
+	
+	@Test
+	public void testRuleApplication() throws FileNotFoundException {
+		Learner learner = new Learner(endpointURL);
+		Map<Rule, Integer> rules = learner.learn(trainData);
+		
+		ColoredDirectedGraph dependencyGraph = learner.generateDependencyGraph(
+				"Give me the birthdays of all actors of the television_show Charmed.", true).toGeneralizedGraph();
+		System.out.println("Dependency graph:\n" + dependencyGraph);
+		SubGraphMatcher subgraphMatcher = new NaiveSubgraphMatcher();
+		for(Rule rule : rules.keySet()){
+			ColoredDirectedGraph sourceGraph = rule.getSource();
+			System.out.println("Checking for containment of\n" + sourceGraph);
+			Set<Set<Node>> matchingSubgraphs = subgraphMatcher.getMatchingSubgraphs(dependencyGraph, sourceGraph);
+			System.out.println("Matching subgraphs:" + matchingSubgraphs);
+		}
+		
+		
 	}
 	
 	private void loadManualMapping(){
