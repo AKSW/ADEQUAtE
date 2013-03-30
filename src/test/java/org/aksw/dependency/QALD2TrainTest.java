@@ -20,6 +20,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 import org.aksw.dependency.graph.ColoredDirectedGraph;
+import org.aksw.dependency.graph.DependencyGraphGenerator;
 import org.aksw.dependency.graph.Node;
 import org.aksw.dependency.graph.matching.NaiveSubgraphMatcher;
 import org.aksw.dependency.graph.matching.SubGraphMatcher;
@@ -119,7 +120,8 @@ public class QALD2TrainTest {
 		Learner learner = new Learner(endpointURL);
 		Map<Rule, Integer> rules = learner.learn(trainData);
 		
-		ColoredDirectedGraph dependencyGraph = learner.generateDependencyGraph(
+		DependencyGraphGenerator dependencyGraphGenerator = new DependencyGraphGenerator();
+		ColoredDirectedGraph dependencyGraph = dependencyGraphGenerator.generateDependencyGraph(
 				"Give me the birthdays of all actors of the television_show Charmed.", true).toGeneralizedGraph();
 		System.out.println("Dependency graph:\n" + dependencyGraph);
 		SubGraphMatcher subgraphMatcher = new NaiveSubgraphMatcher();
@@ -131,6 +133,16 @@ public class QALD2TrainTest {
 		}
 		
 		
+	}
+	
+	@Test
+	public void testRuleApplication2() throws FileNotFoundException {
+		Learner learner = new Learner(endpointURL);
+		Map<Rule, Integer> rules = learner.learn(trainData);
+		
+		SPARQLQueryGenerator sparqlQueryGenerator = new SPARQLQueryGenerator(rules.keySet());
+		String question = "Give me the birthdays of all actors of the television_show Charmed.";
+		sparqlQueryGenerator.generateSPARQLQuery(question);
 	}
 	
 	private void loadManualMapping(){

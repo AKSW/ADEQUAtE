@@ -1,9 +1,12 @@
 package org.aksw.dependency.graph;
 
+import java.util.Set;
+
 public class Node {
 	
 	protected String id;
 	protected String label;
+	protected Set<Integer> tags;
 	
 	public Node(String id) {
 		this(id, id);
@@ -52,6 +55,14 @@ public class Node {
 	}
 	
 	public Node asGeneralizedNode(){return this;}
+	
+	public boolean tag(int tagId){
+		return tags.add(tagId);
+	}
+	
+	public boolean isTagged(int tagId){
+		return tags.contains(tagId);
+	}
 	
 	
 

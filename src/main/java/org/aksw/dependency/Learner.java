@@ -24,6 +24,7 @@ import org.aksw.dependency.converter.DependencyTree2GraphConverter;
 import org.aksw.dependency.converter.SPARQLQuery2GraphConverter;
 import org.aksw.dependency.graph.ColoredDirectedGraph;
 import org.aksw.dependency.graph.ColoredDirectedSubgraph;
+import org.aksw.dependency.graph.DependencyGraphGenerator;
 import org.aksw.dependency.graph.Node;
 import org.aksw.dependency.util.Generalization;
 import org.aksw.dependency.util.GraphUtils;
@@ -73,119 +74,6 @@ public class Learner {
 		this.endpointURL = endpointURL;
 	}
 	
-	
-	private String collapseNounPhrases(String question){
-		Properties props = new Properties();
-		props.put("annotators", "tokenize, ssplit, pos");
-		StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
-
-		// create an empty Annotation just with the given question
-		Annotation document = new Annotation(question);
-
-		// run all Annotators on this question
-		pipeline.annotate(document);
-
-		List<CoreMap> sentences = document.get(SentencesAnnotation.class);
-		
-		//we expect only one sentence as  question
-		CoreMap annotatedSentence = sentences.get(0);
-		StringBuilder sb = new StringBuilder();
-		List<String> nounTags = Arrays.asList(new String[]{"NN", "NNS"});
-		List<String> properNounTags = Arrays.asList(new String[]{"NNP", "NNPS"});
-		String nounPhrase = "";
-		boolean properNoun = false;
-		boolean noun = false;
-		for (CoreLabel token : annotatedSentence.get(TokensAnnotation.class)) {
-			// this is the text of the token
-			String word = token.get(TextAnnotation.class);
-			// this is the POS tag of the token
-			String pos = token.get(PartOfSpeechAnnotation.class);
-			
-			if(nounTags.contains(pos)){
-				if(noun){
-					nounPhrase += "_";
-				} else {
-					if(!nounPhrase.isEmpty()){
-						sb.append(nounPhrase + " ");
-						nounPhrase = "";
-					}
-				}
-				noun = true;
-				properNoun = false;
-				nounPhrase += word;
-			} else if(properNounTags.contains(pos)){
-				if(properNoun){
-					nounPhrase += "_";
-				} else {
-					if(!nounPhrase.isEmpty()){
-						sb.append(nounPhrase + " ");
-						nounPhrase = "";
-					}
-				}
-				properNoun = true;
-				noun = false;
-				nounPhrase += word;
-			} else {
-				if(!nounPhrase.isEmpty()){
-					sb.append(nounPhrase + " ");
-					nounPhrase = "";
-				}
-				sb.append(word + " ");
-				noun = false;
-				properNoun = false;
-			}
-			
-			
-		}
-		return sb.toString().trim();
-	}
-	
-	public ColoredDirectedGraph generateDependencyGraph(String question, boolean pruned){
-		//in a preprocessing step we have to check for noun phrases and combine then, otherwise the dependency graph will be useless
-		System.out.println("Original Question: " + question);
-		question = collapseNounPhrases(question);
-		System.out.println("Preprocessed Question: " + question);
-		
-		Properties props = new Properties();
-		props.put("annotators", "tokenize, ssplit, pos, lemma, parse");
-		StanfordCoreNLP pipeline = new StanfordCoreNLP(props);
-
-		// create an empty Annotation just with the given question
-		Annotation document = new Annotation(question);
-
-		// run all Annotators on this question
-		pipeline.annotate(document);
-
-		List<CoreMap> sentences = document.get(SentencesAnnotation.class);
-		
-		for (CoreMap sentence : sentences) {
-			// traversing the words in the current sentence
-			// a CoreLabel is a CoreMap with additional token-specific methods
-			StringBuilder sb = new StringBuilder();
-			for (CoreLabel token : sentence.get(TokensAnnotation.class)) {
-				// this is the text of the token
-				String word = token.get(TextAnnotation.class);
-				// this is the POS tag of the token
-				String pos = token.get(PartOfSpeechAnnotation.class);
-
-				sb.append(word + "/" + pos + " ");
-			}
-			System.out.println(sb.toString().trim());
-
-			// this is the Stanford dependency graph of the current sentence
-			SemanticGraph dependencyGraph = sentence.get(CollapsedCCProcessedDependenciesAnnotation.class);
-//			System.out.println(dependencyGraph.typedDependencies());
-
-			// convert dependency tree to directed graph
-			DependencyTree2GraphConverter dependencyConverter = new DependencyTree2GraphConverter();
-			ColoredDirectedGraph directedGraph = dependencyConverter.getGraph(dependencyGraph, pruned);
-			
-			return directedGraph;
-		}
-		
-		return null;
-	}
-	
 	public ColoredDirectedGraph generateSPARQLQueryGraph(String queryString){
 		SPARQLQuery2GraphConverter sparqlConverter = new SPARQLQuery2GraphConverter(endpointURL);
 		Query query = QueryFactory.create(queryString, Syntax.syntaxARQ);
@@ -200,7 +88,8 @@ public class Learner {
 	
 	public Collection<Rule> computeMappingRules(String question, String queryString, Map<String, String> manualMapping){
 		//generate the directed graph for the dependencies of the question
-		ColoredDirectedGraph graph1 = generateDependencyGraph(question, true);
+		DependencyGraphGenerator dependencyGraphGenerator = new DependencyGraphGenerator();
+		ColoredDirectedGraph graph1 = dependencyGraphGenerator.generateDependencyGraph(question);
 //		GraphUtils.paint(graph1, "Dependency Graph");
 //		GraphUtils.paint(graph1.toGeneralizedGraph(), "Dependency Graph");
 		
