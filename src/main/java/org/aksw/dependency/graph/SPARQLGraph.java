@@ -18,25 +18,20 @@ public class SPARQLGraph extends ColoredDirectedGraph{
 		
 		Map<Node, Node> node2Newnode = new HashMap<Node, Node>(); 
 		
+		for(Node node : vertexSet()){
+			Node newNode = node.asGeneralizedNode();
+			node2Newnode.put(node, newNode);
+			graph.addVertex(newNode);
+		}
+		
 		for(ColoredEdge edge : edgeSet()){
 			
 			Node source = getEdgeSource(edge);
 			Node target = getEdgeTarget(edge);
 
 			Node newSource = node2Newnode.get(source);
-			if(newSource == null){
-				newSource = source.asGeneralizedNode();
-				node2Newnode.put(source, newSource);
-			}
-			
 			Node newTarget = node2Newnode.get(target);
-			if(newTarget == null){
-				newTarget = target.asGeneralizedNode();
-				node2Newnode.put(target, newTarget);
-			}
 			
-			graph.addVertex(newSource);
-			graph.addVertex(newTarget);
 			graph.addEdge(newSource, newTarget, new ColoredEdge(edge.getLabel(), edge.getColor()));
 		}
 		
@@ -44,7 +39,6 @@ public class SPARQLGraph extends ColoredDirectedGraph{
 	}
 	
 	public Query toSPARQLQuery(){
-		System.out.println(toString());
 		//get all nodes in graph
 		Set<Node> nodes = vertexSet();
 		//find first all nodes which represent a property
@@ -66,7 +60,7 @@ public class SPARQLGraph extends ColoredDirectedGraph{
 				if(source instanceof VariableNode){
 					subjects.add(Var.alloc(source.getId()));
 				} else {
-					subjects.add(com.hp.hpl.jena.graph.Node.createURI(node.getId()));
+					subjects.add(com.hp.hpl.jena.graph.Node.createURI(source.getId()));
 				}
 			}
 			//the objects
@@ -77,9 +71,9 @@ public class SPARQLGraph extends ColoredDirectedGraph{
 				if(target instanceof VariableNode){
 					objects.add(Var.alloc(target.getId()));
 				} else if(target instanceof LiteralNode){
-					subjects.add(com.hp.hpl.jena.graph.Node.createLiteral(node.getId()));
+					subjects.add(com.hp.hpl.jena.graph.Node.createLiteral(target.getId()));
 				} else {
-					subjects.add(com.hp.hpl.jena.graph.Node.createURI(node.getId()));
+					subjects.add(com.hp.hpl.jena.graph.Node.createURI(target.getId()));
 				}
 			}
 			

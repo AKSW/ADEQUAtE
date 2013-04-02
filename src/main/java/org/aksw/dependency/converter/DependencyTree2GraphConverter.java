@@ -8,7 +8,7 @@ import java.util.Map;
 import org.aksw.dependency.graph.ColoredDirectedGraph;
 import org.aksw.dependency.graph.ColoredEdge;
 import org.aksw.dependency.graph.DependencyGraph;
-import org.aksw.dependency.graph.DependencyNode;
+import org.aksw.dependency.graph.DependencyGraphNode;
 import org.aksw.dependency.graph.Node;
 import org.apache.log4j.Logger;
 
@@ -31,8 +31,8 @@ public class DependencyTree2GraphConverter {
 
 			String color = "black";
 
-			Node source = new DependencyNode(sourceWord.word(), sourceWord.tag());
-			Node target = new DependencyNode(targetWord.word(), targetWord.tag());
+			Node source = new DependencyGraphNode(sourceWord.word(), sourceWord.tag());
+			Node target = new DependencyGraphNode(targetWord.word(), targetWord.tag());
 			Node relationNode = new Node(relation.toString());
 
 			graph.addVertex(source);
@@ -60,8 +60,8 @@ public class DependencyTree2GraphConverter {
 			if (!pruned || (pruned && !ignoreWordsWithTag.contains(targetWord.tag()) && !ignoreRelations.contains(relation.toString()))) {
 				String color = "black";
 
-				Node source = new DependencyNode(sourceWord.word(), sourceWord.tag());
-				Node target = new DependencyNode(targetWord.word(), targetWord.tag());
+				Node source = new DependencyGraphNode(sourceWord.word(), sourceWord.tag());
+				Node target = new DependencyGraphNode(targetWord.word(), targetWord.tag());
 				String relationString = relation.toString();
 				Integer cnt = relationOccurenceCount.get(relationString);
 				if (cnt == null) {

@@ -1,5 +1,7 @@
 package org.aksw.dependency.converter;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import org.aksw.dependency.graph.ClassNode;
@@ -28,6 +30,8 @@ public class SPARQLQuery2GraphConverter {
 	
 	private String endpointURL;
 	
+	private Map<com.hp.hpl.jena.graph.Node, Node> nodes = new HashMap<com.hp.hpl.jena.graph.Node, Node>();
+	
 	public SPARQLQuery2GraphConverter(String endpointURL) {
 		this.endpointURL = endpointURL;
 	}
@@ -50,6 +54,7 @@ public class SPARQLQuery2GraphConverter {
 			graph.addEdge(subject, predicate, new ColoredEdge("edge", COLOR));
 			graph.addEdge(predicate, object, new ColoredEdge("edge", COLOR));			
 		}
+		System.out.println(graph);
 		return graph;
 	}
 	
@@ -57,25 +62,29 @@ public class SPARQLQuery2GraphConverter {
 		return getGraph(QueryFactory.create(query, Syntax.syntaxARQ));
 	}
 	
-	public Node getNode(com.hp.hpl.jena.graph.Node node){
-		if(node.isVariable()){
-			return new VariableNode(node.toString());
-		} else if(node.isURI()){
-			String uri = node.getURI();
-			if(node.matches(RDF.type.asNode())){
-				return new PropertyNode(uri, uri);
-			} else {
-				if(SPARQLUtil.isClass(endpointURL, uri)){
-					return new ClassNode(uri, uri);
-				} else if(SPARQLUtil.isProperty(endpointURL, uri)){
-					return new PropertyNode(uri);
+	public Node getNode(com.hp.hpl.jena.graph.Node queryNode){
+		Node graphNode = nodes.get(queryNode);
+		if(graphNode == null){
+			if(queryNode.isVariable()){
+				graphNode = new VariableNode(queryNode.getName());
+			} else if(queryNode.isURI()){
+				String uri = queryNode.getURI();
+				if(queryNode.matches(RDF.type.asNode())){
+					graphNode = new PropertyNode(uri, uri);
 				} else {
-					return new ResourceNode(uri);
+					if(SPARQLUtil.isClass(endpointURL, uri)){
+						graphNode = new ClassNode(uri, uri);
+					} else if(SPARQLUtil.isProperty(endpointURL, uri)){
+						graphNode = new PropertyNode(uri);
+					} else {
+						graphNode = new ResourceNode(uri);
+					}
 				}
-			}
-		} else if(node.isLiteral()){
-			return new LiteralNode(node.getLiteralLexicalForm());
-		} 
-		return null;
+			} else if(queryNode.isLiteral()){
+				graphNode = new LiteralNode(queryNode.getLiteralLexicalForm());
+			} 
+			nodes.put(queryNode, graphNode);
+		}
+		return graphNode;
 	}
 }

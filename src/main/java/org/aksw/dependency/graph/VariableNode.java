@@ -19,7 +19,7 @@ public class VariableNode extends Node{
 	
 	@Override
 	public String toString() {
-		return varName;
+		return label + "(?" + id + ")";
 	}
 	
 	@Override

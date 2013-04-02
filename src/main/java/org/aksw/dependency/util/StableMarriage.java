@@ -11,7 +11,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.aksw.dependency.graph.ColoredDirectedGraph;
-import org.aksw.dependency.graph.DependencyNode;
+import org.aksw.dependency.graph.DependencyGraphNode;
 import org.aksw.dependency.graph.Node;
 
 import uk.ac.shef.wit.simmetrics.similaritymetrics.AbstractStringMetric;
@@ -47,7 +47,7 @@ public class StableMarriage implements Matcher{
 		List<Node> nodes2 = new ArrayList<Node>();
 		for(Node node : graph2.vertexSet()){
 			String label = node.getLabel();
-			if(node instanceof DependencyNode && ((DependencyNode)node).getPosTag() != null){
+			if(node instanceof DependencyGraphNode && ((DependencyGraphNode)node).getPosTag() != null){
 				nodes2.add(node);
 			} else {
 				if(label.startsWith("prep_")){

@@ -138,7 +138,7 @@ public class QALD2TrainTest {
 	@Test
 	public void testRuleApplication2() throws FileNotFoundException {
 		Learner learner = new Learner(endpointURL);
-		Map<Rule, Integer> rules = learner.learn(trainData);
+		Map<Rule, Integer> rules = learner.learn(trainData, manualMapping);
 		
 		SPARQLQueryGenerator sparqlQueryGenerator = new SPARQLQueryGenerator(rules.keySet());
 		String question = "Give me the birthdays of all actors of the television_show Charmed.";

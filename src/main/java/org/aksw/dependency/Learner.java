@@ -186,6 +186,9 @@ public class Learner {
 					for(Entry<Node, Node> entry : mapping.entrySet()){
 						generalizedMapping.put(gen1.getMapping().get(entry.getKey()), gen2.getMapping().get(entry.getValue()));
 					}
+//					for(Node n : generalizedMapping.values()){n.setLabel("TEST");}
+//					System.out.println("Gen Mapping: " + generalizedMapping);
+//					System.out.println("Gen graph: " + gen2.getGeneralizedGraph());
 					learnedRules.add(new Rule(gen1.getGeneralizedGraph(), gen2.getGeneralizedGraph(), generalizedMapping));
 				}
 			}
