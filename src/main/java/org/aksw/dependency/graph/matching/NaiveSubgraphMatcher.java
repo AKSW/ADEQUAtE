@@ -17,11 +17,11 @@ import org.aksw.dependency.util.SubsetGenerator;
 public class NaiveSubgraphMatcher implements SubGraphMatcher {
 
     @Override
-    public Set<Set<Node>> getMatchingSubgraphs(ColoredDirectedGraph largerGraph, ColoredDirectedGraph smallerGraph) {
+    public Set<Map<Node,Node>> getMatchingSubgraphs(ColoredDirectedGraph largerGraph, ColoredDirectedGraph smallerGraph) {
         Set<Node> largerGraphNodes = new HashSet<>(largerGraph.vertexSet());
         Set<Node> smallerGraphNodes = new HashSet<>(smallerGraph.vertexSet());
 
-        Set<Set<Node>> result = new HashSet<>();
+        Set<Map<Node,Node>> result = new HashSet<>();
         if (largerGraph.vertexSet().size() < smallerGraph.vertexSet().size()) {
             return result;
         }
@@ -31,8 +31,10 @@ public class NaiveSubgraphMatcher implements SubGraphMatcher {
 
         for (Set<Node> large : largeGraphSubsets) {
             for (Set<Node> small : smallGraphSubsets) {
-                if (matches(largerGraph, smallerGraph, large, small)) {
-                    result.add(new HashSet<>(large));
+                Set<Map<Node, Node>> matches = matches(largerGraph, smallerGraph, large, small); 
+                if(!matches.isEmpty())
+                {
+                    result.addAll(matches);
                 }
             }
         }
@@ -60,10 +62,12 @@ public class NaiveSubgraphMatcher implements SubGraphMatcher {
      * in largerGraph
      */
 
-    public boolean matches(ColoredDirectedGraph largerGraph, ColoredDirectedGraph smallerGraph, Set<Node> largerGraphNodes, Set<Node> smallerGraphNodes) {
+    public Set<Map<Node, Node>> matches(ColoredDirectedGraph largerGraph, ColoredDirectedGraph smallerGraph, Set<Node> largerGraphNodes, Set<Node> smallerGraphNodes) {
 
+        Set<Map<Node, Node>> results = new HashSet<Map<Node, Node>>();
         //test 1: node labels
         //Create copy
+
         Map<Node, Set<Node>> map = new HashMap<>();
         for (Node n1 : smallerGraphNodes) {
             for (Node n2 : largerGraphNodes) {
@@ -77,7 +81,7 @@ public class NaiveSubgraphMatcher implements SubGraphMatcher {
         }
         // if not all nodes from small were matched
         if (map.keySet().size() < smallerGraphNodes.size()) {
-            return false;
+            return results;
         }
 
         // if not all nodes from large were matched
@@ -86,7 +90,7 @@ public class NaiveSubgraphMatcher implements SubGraphMatcher {
             large.addAll(map.get(n));
         }
         if (large.size() < largerGraphNodes.size()) {
-            return false;
+            return results;
         }
 
         //all nodes were mapped. Now for the edges. We simply generate all possible solutions and check them
@@ -123,12 +127,16 @@ public class NaiveSubgraphMatcher implements SubGraphMatcher {
         for (List<Node> solution : solutions) {
             if (solution.size() == small.size()) {
                 if (checkSolution(solution, small, smallerGraph, largerGraph)) {
-                    return true;
+                    Map<Node, Node> nodeMap = new HashMap<Node, Node>();
+                    for (int i = 0; i < small.size(); i++) {
+                        nodeMap.put(solution.get(i), small.get(i));
+                    }
+                    results.add(nodeMap);
                 }
             }
         }
 
-        return false;
+        return results;
     }
 
     public static boolean checkSolution(List<Node> solution, List<Node> small, ColoredDirectedGraph smallGraph, ColoredDirectedGraph largeGraph) {
@@ -149,27 +157,32 @@ public class NaiveSubgraphMatcher implements SubGraphMatcher {
         ColoredDirectedGraph small = new ColoredDirectedGraph();
 
         List<Node> lNodes = new ArrayList<>();
-        for (int i = 0; i <= 6; i++) {
+        for (int i = 0; i <= 10; i++) {
             lNodes.add(new Node(i + "", "A"));
             large.addVertex(lNodes.get(i));
         }
 
         List<Node> sNodes = new ArrayList<>();
 
-        for (int i = 0; i <= 2; i++) {
+        for (int i = 0; i < 3; i++) {
             sNodes.add(new Node(i + "", "A"));
             small.addVertex(sNodes.get(i));
+        }
+        
+        for (int i = 0; i < 3; i++) {
+            lNodes.add(new Node(i + "", "A"));
+            large.addVertex(lNodes.get(i));
         }
 
         large.addEdge(lNodes.get(0), lNodes.get(1), new ColoredEdge("edge", "red"));
         large.addEdge(lNodes.get(1), lNodes.get(2), new ColoredEdge("edge", "red"));
         large.addEdge(lNodes.get(2), lNodes.get(0), new ColoredEdge("edge", "red"));
-
-        large.addEdge(lNodes.get(3), lNodes.get(4), new ColoredEdge("edge", "red"));
-        large.addEdge(lNodes.get(4), lNodes.get(5), new ColoredEdge("edge", "red"));
-        large.addEdge(lNodes.get(5), lNodes.get(3), new ColoredEdge("edge", "red"));
-
-        large.addEdge(lNodes.get(2), lNodes.get(3), new ColoredEdge("edge", "red"));
+//
+//        large.addEdge(lNodes.get(3), lNodes.get(4), new ColoredEdge("edge", "red"));
+//        large.addEdge(lNodes.get(4), lNodes.get(5), new ColoredEdge("edge", "red"));
+//        large.addEdge(lNodes.get(5), lNodes.get(3), new ColoredEdge("edge", "red"));
+//
+//        large.addEdge(lNodes.get(2), lNodes.get(3), new ColoredEdge("edge", "red"));
 
         small.addEdge(sNodes.get(0), sNodes.get(1), new ColoredEdge("edge", "red"));
         small.addEdge(sNodes.get(1), sNodes.get(2), new ColoredEdge("edge", "red"));
