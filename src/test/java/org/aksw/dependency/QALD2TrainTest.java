@@ -62,7 +62,7 @@ public class QALD2TrainTest {
 	private String endpointURL = "http://dbpedia.org/sparql";
 	private boolean omitYAGO = true;
 	private boolean omitUNION = true;
-	private static final int maxNrOfTrainQueries = 1;
+	private static final int maxNrOfTrainQueries = 2;
 	
 	private String question;
 	private String sparqlQuery;
@@ -72,7 +72,7 @@ public class QALD2TrainTest {
 	public void setUp() throws Exception {
 		loadTrainData();
 		loadManualMapping();
-		System.setErr(new PrintStream("/dev/null"));
+//		System.setErr(new PrintStream("/dev/null"));
 		question = id2QuestionMap.get(exampleId);
 		sparqlQuery = id2SPARQLQueryMap.get(exampleId);
 	}
@@ -99,7 +99,7 @@ public class QALD2TrainTest {
 //		Logger.getRootLogger().setLevel(Level.DEBUG);
 		Learner learner = new Learner(endpointURL);
 		Map<Rule, Integer> rules = learner.learn(question, sparqlQuery, manualMapping);
-		SPARQLQueryGenerator spGen = new SPARQLQueryGenerator(rules.keySet());
+		SPARQLQueryTemplateGenerator spGen = new SPARQLQueryTemplateGenerator(rules.keySet());
 		spGen.generateSPARQLQuery(question);
 	}
 
@@ -128,7 +128,7 @@ public class QALD2TrainTest {
 		for(Rule rule : rules.keySet()){
 			ColoredDirectedGraph sourceGraph = rule.getSource();
 			System.out.println("Checking for containment of\n" + sourceGraph);
-			Set<Set<Node>> matchingSubgraphs = subgraphMatcher.getMatchingSubgraphs(dependencyGraph, sourceGraph);
+			Set<Map<Node, Node>> matchingSubgraphs = subgraphMatcher.getMatchingSubgraphs(dependencyGraph, sourceGraph);
 			System.out.println("Matching subgraphs:" + matchingSubgraphs);
 		}
 		
@@ -137,11 +137,12 @@ public class QALD2TrainTest {
 	
 	@Test
 	public void testRuleApplication2() throws FileNotFoundException {
-		Learner learner = new Learner(endpointURL);
-		Map<Rule, Integer> rules = learner.learn(trainData, manualMapping);
+		RuleGenerator ruleGenerator = new RuleGenerator(endpointURL);
+		Map<Rule, Integer> rules = ruleGenerator.generateRules(trainData, manualMapping);
 		
-		SPARQLQueryGenerator sparqlQueryGenerator = new SPARQLQueryGenerator(rules.keySet());
-		String question = "Give me the birthdays of all actors of the television_show Charmed.";
+		SPARQLQueryTemplateGenerator sparqlQueryGenerator = new SPARQLQueryTemplateGenerator(rules.keySet());
+		String question = "Give me the birthdays of all actors of the television_show Chirmed.";
+		question = "Who is the daughter of Bruce Willis married to?";
 		sparqlQueryGenerator.generateSPARQLQuery(question);
 	}
 	

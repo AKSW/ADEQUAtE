@@ -1,8 +1,11 @@
 package org.aksw.dependency.graph;
 
+import java.io.Serializable;
 import java.util.Set;
 
-public class Node {
+public class Node implements Serializable{
+	
+	private static final long serialVersionUID = 4149467628737116410L;
 	
 	protected String id;
 	protected String label;

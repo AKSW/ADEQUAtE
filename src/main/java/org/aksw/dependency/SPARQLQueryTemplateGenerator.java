@@ -31,16 +31,16 @@ import com.hp.hpl.jena.sparql.core.Var;
 import com.hp.hpl.jena.sparql.syntax.ElementGroup;
 import com.hp.hpl.jena.sparql.syntax.ElementTriplesBlock;
 
-public class SPARQLQueryGenerator {
+public class SPARQLQueryTemplateGenerator {
 	
 	private Collection<Rule> rules;
 	private Collection<Rule> appliedRules;
-	Map<Rule, Set<Node>> ruleWithMarkedNodes;
+	Map<Rule, Map<Node, Node>> ruleWithMarkedNodes;
 	private SubGraphMatcher subGraphMatcher = new NaiveSubgraphMatcher();
 
-	public SPARQLQueryGenerator(Collection<Rule> rules) {
+	public SPARQLQueryTemplateGenerator(Collection<Rule> rules) {
 		this.rules = rules;
-		ruleWithMarkedNodes = new HashMap<Rule, Set<Node>>(rules.size());
+		ruleWithMarkedNodes = new HashMap<Rule, Map<Node, Node>>(rules.size());
 	}
 	
 	public Query generateSPARQLQuery(String question){
@@ -64,9 +64,9 @@ public class SPARQLQueryGenerator {
 		for(Rule rule : rules){
 			ColoredDirectedGraph ruleBodyGraph = rule.getSource();
 			//get all matching subgraphs
-			Set<Set<Node>> matchingSubgraphs = subGraphMatcher.getMatchingSubgraphs(dependencyGraph, ruleBodyGraph);
+			Set<Map<Node, Node>> matchingSubgraphs = subGraphMatcher.getMatchingSubgraphs(dependencyGraph, ruleBodyGraph);
 			//try to find a matching subgraph which is not already covered by another rule
-			for (Set<Node> subGraph : matchingSubgraphs) {
+			for (Map<Node, Node> subGraph : matchingSubgraphs) {System.out.println(subGraph);
 				if(!isCoveredByOtherRule(subGraph)){
 					ruleWithMarkedNodes.put(rule, subGraph);
 				}
@@ -75,20 +75,28 @@ public class SPARQLQueryGenerator {
 	}
 	
 	private void buildSPARQLQueryTemplate(){
-		for (Entry<Rule, Set<Node>> rule2SubGraph : ruleWithMarkedNodes.entrySet()) {
+		for (Entry<Rule, Map<Node, Node>> rule2SubGraph : ruleWithMarkedNodes.entrySet()) {
 			Rule rule = rule2SubGraph.getKey();
 			System.out.println("+++++++++++++++++++++++\nProcessing rule\n" + rule);
-			Set<Node> sourceNodes = rule2SubGraph.getValue();
+			Map<Node, Node> sourceNodes = rule2SubGraph.getValue();
 			System.out.print("Source nodes: ");
-			for (Node node : sourceNodes) {
-				System.out.print(node.getId()+ ", ");
+			for (Entry<Node, Node> entry : sourceNodes.entrySet()) {
+				System.out.print(entry + ", ");
 			}System.out.println();
 			ColoredDirectedGraph targetGraph = rule.getTarget();
 			Map<Node, Node> mapping = rule.getMapping();
 			
+			for (Entry<Node, Node> entry : mapping.entrySet()) {
+				Node key = entry.getKey();
+				Node value = entry.getValue();
+				System.out.println(key + "->" + value);
+			}
+			
 			//replace each node in the target graph with the token of the mapped node in the source graph
-			for (Node sourceNode : sourceNodes) {
-				Node targetNode = mapping.get(sourceNode);
+			for (Entry<Node, Node> entry : sourceNodes.entrySet()) {
+				Node sourceNode = entry.getKey();
+				Node sourceRuleNode = entry.getValue();
+				Node targetNode = mapping.get(sourceRuleNode);
 				if(targetNode != null){
 					System.out.println(sourceNode.getId() + " replaces " + targetNode);
 					targetNode.setLabel(sourceNode.getId());
@@ -101,6 +109,7 @@ public class SPARQLQueryGenerator {
 //					System.out.println(targetGraph.containsVertex(targetNode));
 				}
 			}
+			System.out.println(targetGraph);
 			//get all nodes in graph
 			Set<Node> nodes = targetGraph.vertexSet();
 			//firstly, find all nodes which represent a property
@@ -203,22 +212,22 @@ public class SPARQLQueryGenerator {
 		}
 	}
 	
-	private boolean isCoveredByOtherRule(Set<Node> subGraph){
-		for (Entry<Rule, Set<Node>> entry : ruleWithMarkedNodes.entrySet()) {
+	private boolean isCoveredByOtherRule(Map<Node, Node> subGraph){
+		for (Entry<Rule, Map<Node, Node>> entry : ruleWithMarkedNodes.entrySet()) {
 			Rule rule = entry.getKey();
-			Set<Node> otherSubGraph = entry.getValue();
-			if(otherSubGraph.containsAll(subGraph)){
+			Map<Node, Node> otherSubGraph = entry.getValue();
+			if(otherSubGraph.keySet().containsAll(subGraph.keySet())){
 				return true;
 			}
 		}
 		return false;
 	}
 	
-	private boolean coversOtherRule(Set<Node> subGraph){
-		for (Entry<Rule, Set<Node>> entry : ruleWithMarkedNodes.entrySet()) {
+	private boolean coversOtherRule(Map<Node, Node> subGraph){
+		for (Entry<Rule, Map<Node, Node>> entry : ruleWithMarkedNodes.entrySet()) {
 			Rule rule = entry.getKey();
-			Set<Node> otherSubGraph = entry.getValue();
-			if(subGraph.containsAll(otherSubGraph)){
+			Map<Node, Node> otherSubGraph = entry.getValue();
+			if(subGraph.keySet().containsAll(otherSubGraph.keySet())){
 				return true;
 			}
 		}

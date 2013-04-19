@@ -1,5 +1,6 @@
 package org.aksw.dependency;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -7,7 +8,9 @@ import org.aksw.dependency.graph.ColoredDirectedGraph;
 import org.aksw.dependency.graph.ColoredEdge;
 import org.aksw.dependency.graph.Node;
 
-public class Rule {
+public class Rule implements Serializable{
+	
+	private static final long serialVersionUID = 2995597261242916043L;
 	
 	private ColoredDirectedGraph source;
 	private ColoredDirectedGraph target;
