@@ -62,15 +62,24 @@ public class HierarchicalSort implements RuleSort {
             }
         }
         propagate(childMap, top, 0, hierarchy);
-        return Lists.reverse((new FrequencySort()).sortRule(hierarchy));
+        List<Rule> result = (new FrequencySort()).sortRule(hierarchy);
+//        result.remove(top);
+        return Lists.reverse(result);
     }
 
     private void propagate(Map<Rule, Set<Rule>> childMap, Rule top, int index, Map<Rule, Double> hierarchy) {
         if (childMap.containsKey(top)) {
             if (!childMap.get(top).isEmpty()) {
                 for (Rule r : childMap.get(top)) {
-                    hierarchy.put(r, (double) (index + 1));
-                    propagate(childMap, r, index + 1, hierarchy);
+                    if (!hierarchy.containsKey(r)) {
+                        hierarchy.put(r, (double) (index + 1));
+                        propagate(childMap, r, index + 1, hierarchy);
+                    } else {
+                        if (hierarchy.get(r) < (index + 1)) {
+                            hierarchy.put(r, (double) (index + 1));
+                            propagate(childMap, r, index + 1, hierarchy);
+                        }
+                    }
                 }
             }
         }
@@ -86,6 +95,8 @@ public class HierarchicalSort implements RuleSort {
         childMap.put(a, new HashSet<Rule>());
         childMap.get(a).add(b);
         childMap.get(a).add(c);
+        childMap.get(a).add(d);
+        childMap.get(a).add(e);
         childMap.put(c, new HashSet<Rule>());
         childMap.get(c).add(d);
         childMap.get(c).add(e);
