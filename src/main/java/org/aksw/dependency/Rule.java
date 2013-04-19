@@ -11,7 +11,7 @@ import org.aksw.dependency.graph.Node;
 public class Rule implements Serializable{
 	
 	private static final long serialVersionUID = 2995597261242916043L;
-	
+	private String label;
 	private ColoredDirectedGraph source;
 	private ColoredDirectedGraph target;
 	private Map<Node, Node> mapping;
@@ -21,7 +21,18 @@ public class Rule implements Serializable{
 		this.target = target;
 		this.mapping = mapping;
 	}
+        
+        public Rule(ColoredDirectedGraph source, ColoredDirectedGraph target, Map<Node, Node> mapping, String label) {
+		this.source = source;
+		this.target = target;
+		this.mapping = mapping;
+                this.label = label;
+	}
 	
+        public String getLabel()
+        {
+            return label;
+        }
 	public ColoredDirectedGraph getSource() {
 		return source;
 	}
@@ -50,7 +61,10 @@ public class Rule implements Serializable{
 	
 	@Override
 	public String toString() {
+            if(label == null)
 		return "Rule:\nSource:\t" + source + "\nTarget:\t" + target + "\nMapping:\t" + mapping;
+            else
+                return "Rule "+label+":\nSource:\t" + source + "\nTarget:\t" + target + "\nMapping:\t" + mapping;
 	}
 	
 
