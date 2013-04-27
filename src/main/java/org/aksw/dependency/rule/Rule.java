@@ -1,4 +1,4 @@
-package org.aksw.dependency;
+package org.aksw.dependency.rule;
 
 import java.io.Serializable;
 import java.util.Map;
@@ -62,7 +62,7 @@ public class Rule implements Serializable{
 	@Override
 	public String toString() {
             if(label == null)
-		return "Rule:\nSource:\t" + source + "\nTarget:\t" + target + "\nMapping:\t" + mapping;
+		return "Rule:\nSource:\t" + source.dump() + "\nTarget:\t" + target.dump() + "\nMapping:\t" + mapping;
             else
                 return "Rule "+label+":\nSource:\t" + source + "\nTarget:\t" + target + "\nMapping:\t" + mapping;
 	}

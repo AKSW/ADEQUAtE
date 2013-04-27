@@ -55,7 +55,6 @@ public class StableMarriage implements Matcher{
 				}
 			}
 		}
-		
 		BiMap<Node, Node> manualMatching = applyManualMapping(nodes2, nodes1);
 		
 		for (Node node1 : nodes1) {
@@ -109,7 +108,7 @@ public class StableMarriage implements Matcher{
 			if(mapping.containsKey(label1)){
 				for(Iterator<Node> it2 = nodes2.iterator(); it2.hasNext();){
 					Node node2 = it2.next();
-					String label2 = node2.toString();
+					String label2 = node2.getLabel().toString();
 					if(mapping.get(label1).equals(label2)){
 						matching.put(node1, node2);
 						it1.remove();

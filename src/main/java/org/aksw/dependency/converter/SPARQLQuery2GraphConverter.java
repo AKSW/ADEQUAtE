@@ -42,10 +42,22 @@ public class SPARQLQuery2GraphConverter {
 		TriplePatternExtractor extractor = new TriplePatternExtractor();
 		Set<Triple> triples = extractor.extractTriplePattern(query);
 		
+		Map<String, Integer> predicateOccurenceCount = new HashMap<String, Integer>();
+		
 		for(Triple t : triples){
 			Node subject = getNode(t.getSubject());
-			Node predicate = getNode(t.getPredicate());
 			Node object = getNode(t.getObject());
+			
+			String predicateString = t.getPredicate().getURI();
+			Integer cnt = predicateOccurenceCount.get(predicateString);
+			if (cnt == null) {
+				cnt = Integer.valueOf(1);
+			} else {
+				cnt++;
+			}
+			predicateOccurenceCount.put(predicateString, cnt);
+			predicateString += "_" + cnt.toString();
+			Node predicate = new PropertyNode(predicateString, t.getPredicate().getURI());
 			
 			graph.addVertex(subject);
 			graph.addVertex(predicate);
@@ -54,7 +66,6 @@ public class SPARQLQuery2GraphConverter {
 			graph.addEdge(subject, predicate, new ColoredEdge("edge", COLOR));
 			graph.addEdge(predicate, object, new ColoredEdge("edge", COLOR));			
 		}
-		System.out.println(graph);
 		return graph;
 	}
 	

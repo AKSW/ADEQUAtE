@@ -5,12 +5,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.aksw.dependency.Rule;
 import org.aksw.dependency.graph.ColoredDirectedGraph;
 import org.aksw.dependency.graph.ColoredEdge;
 import org.aksw.dependency.graph.EdgeComparator;
 import org.aksw.dependency.graph.Node;
 import org.aksw.dependency.graph.NodeComparator;
+import org.aksw.dependency.rule.Rule;
 import org.aksw.dependency.util.SimPackGraphWrapper;
 import org.jgrapht.DirectedGraph;
 import org.jgrapht.experimental.equivalence.EquivalenceComparator;

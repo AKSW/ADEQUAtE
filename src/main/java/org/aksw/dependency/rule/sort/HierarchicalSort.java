@@ -2,12 +2,13 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package org.aksw.dependency.rulesort;
+package org.aksw.dependency.rule.sort;
 
 import com.google.common.collect.Lists;
 import java.util.*;
-import org.aksw.dependency.Rule;
+
 import org.aksw.dependency.graph.matching.NaiveSubgraphMatcher;
+import org.aksw.dependency.rule.Rule;
 
 /**
  *
@@ -25,7 +26,7 @@ public class HierarchicalSort implements RuleSort {
         return !nsm.getMatchingSubgraphs(r1.getSource(), r2.getTarget()).isEmpty();
     }
 
-    public List<Rule> sortRule(Map<Rule, Double> rules) {
+    public <T extends Number> List<Rule> sortRules(Map<Rule, T> rules) {
         List<Rule> rs = new ArrayList<Rule>(rules.keySet());
 
         //top rule contains all rules
@@ -62,10 +63,16 @@ public class HierarchicalSort implements RuleSort {
             }
         }
         propagate(childMap, top, 0, hierarchy);
-        List<Rule> result = (new FrequencySort()).sortRule(hierarchy);
+        List<Rule> result = (new FrequencySort()).sortRules(hierarchy);
 //        result.remove(top);
         return Lists.reverse(result);
     }
+    
+
+	@Override
+	public List<Rule> sortRules(Collection<Rule> rules) {
+		return null;
+	}
 
     private void propagate(Map<Rule, Set<Rule>> childMap, Rule top, int index, Map<Rule, Double> hierarchy) {
         if (childMap.containsKey(top)) {

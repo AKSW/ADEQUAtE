@@ -2,16 +2,13 @@ package org.aksw.dependency;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintStream;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -19,14 +16,16 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
-import org.aksw.dependency.graph.ColoredDirectedGraph;
-import org.aksw.dependency.graph.DependencyGraphGenerator;
-import org.aksw.dependency.graph.Node;
-import org.aksw.dependency.graph.matching.NaiveSubgraphMatcher;
-import org.aksw.dependency.graph.matching.SubGraphMatcher;
-import org.aksw.dependency.util.GraphUtils;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
+import org.aksw.dependency.rule.Rule;
+import org.aksw.dependency.rule.RuleGenerator;
+import org.aksw.dependency.rule.RuleModel;
+import org.aksw.dependency.rule.sort.FrequencySort;
+import org.aksw.dependency.rule.sort.RuleSort;
+import org.aksw.dependency.rule.sort.SizeSort;
+import org.aksw.dependency.rule.sort.SizeSort.Ordering;
+import org.aksw.dependency.template.SPARQLQueryTemplateGenerator;
+import org.aksw.dependency.template.Template;
+import org.aksw.dependency.util.ManualMapping;
 import org.junit.Before;
 import org.junit.Test;
 import org.w3c.dom.DOMException;
@@ -62,11 +61,15 @@ public class QALD2TrainTest {
 	private String endpointURL = "http://dbpedia.org/sparql";
 	private boolean omitYAGO = true;
 	private boolean omitUNION = true;
-	private static final int maxNrOfTrainQueries = 2;
+	private static final int maxNrOfTrainQueries = 100;
 	
+	private int sampleStart = 50;
+	private int sampleEnd = 70;
 	private String question;
 	private String sparqlQuery;
-	private int exampleId = 2;
+	private int exampleId = 15;
+	
+	private int[] trainIds = {55,64};
 
 	@Before
 	public void setUp() throws Exception {
@@ -78,72 +81,64 @@ public class QALD2TrainTest {
 	}
 	
 	@Test
-	public void paintSingleExample() throws FileNotFoundException {
-		Learner learner = new Learner(endpointURL);
-		
-//		ColoredDirectedGraph graph1 = learner.generateDependencyGraph(question, true);
-//		GraphUtils.paint(graph1, "Dependency Graph");
-//		GraphUtils.paint(graph1.toGeneralizedGraph(), "Dependency Graph");
-		
-		//generate the directed graph for the SPARQL query
-		ColoredDirectedGraph graph2 = learner.generateSPARQLQueryGraph(sparqlQuery);
-		GraphUtils.paint(graph2, "SPARQL Query Graph");
-		GraphUtils.paint(graph2.toGeneralizedGraph(), "SPARQL Query Graph");
-		
-		while(true){}
-		
-	}
-	
-	@Test
 	public void learnFromSingleExample() throws FileNotFoundException {
-//		Logger.getRootLogger().setLevel(Level.DEBUG);
-		Learner learner = new Learner(endpointURL);
-		Map<Rule, Integer> rules = learner.learn(question, sparqlQuery, manualMapping);
-		SPARQLQueryTemplateGenerator spGen = new SPARQLQueryTemplateGenerator(rules.keySet());
-		spGen.generateSPARQLQuery(question);
+		HashBasedTable<Integer, String, String> trainData = HashBasedTable.create();
+		for (int id : trainIds) {
+			String question = id2QuestionMap.get(id);
+			String sparqlQuery = id2SPARQLQueryMap.get(id);
+			trainData.put(id, question, sparqlQuery);
+		}
+		RuleGenerator ruleGenerator = new RuleGenerator(endpointURL);
+		RuleModel ruleModel = ruleGenerator.generateRuleModel(trainData, manualMapping);
+		RuleSort sorter = new SizeSort(Ordering.ASCENDING);
+		List<Rule> sortedRules = sorter.sortRules(ruleModel.getRules());
+		for (Rule rule : sortedRules) {
+//			System.out.println(rule);
+		}
+		sorter = new FrequencySort();
+		sortedRules = sorter.sortRules(ruleModel.getRules());
+		for (Rule rule : sortedRules) {
+//			System.out.println(rule);
+		}
+		SPARQLQueryTemplateGenerator templateGenerator = new SPARQLQueryTemplateGenerator(ruleModel);
+		Collection<Template> templates = templateGenerator.generateSPARQLQueryTemplates(question);
+		System.out.println(templates);
 	}
 
 	@Test
 	public void testRuleLearning() throws FileNotFoundException {
-		Learner learner = new Learner(endpointURL);
-		Map<Rule, Integer> rules = learner.learn(trainData);
+		RuleGenerator ruleGenerator = new RuleGenerator(endpointURL);
+		RuleModel ruleModel = ruleGenerator.generateRuleModel(trainData, (ManualMapping)null);
+		RuleSort sorter = new SizeSort(Ordering.ASCENDING);
+		List<Rule> sortedRules = sorter.sortRules(ruleModel.getRules());
+		for (Rule rule : sortedRules) {
+			System.out.println(rule);
+		}
 	}
 	
 	@Test
 	public void testRuleLearningWithManualMappingInput() {
-		Learner learner = new Learner(endpointURL);
-		Map<Rule, Integer> rules = learner.learn(trainData, manualMapping);
+		RuleGenerator ruleGenerator = new RuleGenerator(endpointURL);
+		RuleModel ruleModel = ruleGenerator.generateRuleModel(trainData, manualMapping);
+		RuleSort sorter = new SizeSort(Ordering.ASCENDING);
+		List<Rule> sortedRules = sorter.sortRules(ruleModel.getRules());
+		for (Rule rule : sortedRules) {
+			System.out.println(rule);
+		}
 	}
 	
 	@Test
 	public void testRuleApplication() throws FileNotFoundException {
-		Learner learner = new Learner(endpointURL);
-		Map<Rule, Integer> rules = learner.learn(trainData);
-		
-		DependencyGraphGenerator dependencyGraphGenerator = new DependencyGraphGenerator();
-		ColoredDirectedGraph dependencyGraph = dependencyGraphGenerator.generateDependencyGraph(
-				"Give me the birthdays of all actors of the television_show Charmed.", true).toGeneralizedGraph();
-		System.out.println("Dependency graph:\n" + dependencyGraph);
-		SubGraphMatcher subgraphMatcher = new NaiveSubgraphMatcher();
-		for(Rule rule : rules.keySet()){
-			ColoredDirectedGraph sourceGraph = rule.getSource();
-			System.out.println("Checking for containment of\n" + sourceGraph);
-			Set<Map<Node, Node>> matchingSubgraphs = subgraphMatcher.getMatchingSubgraphs(dependencyGraph, sourceGraph);
-			System.out.println("Matching subgraphs:" + matchingSubgraphs);
-		}
-		
-		
-	}
-	
-	@Test
-	public void testRuleApplication2() throws FileNotFoundException {
 		RuleGenerator ruleGenerator = new RuleGenerator(endpointURL);
-		Map<Rule, Integer> rules = ruleGenerator.generateRules(trainData, manualMapping);
+		RuleModel ruleModel = ruleGenerator.generateRuleModel(trainData, manualMapping);
 		
-		SPARQLQueryTemplateGenerator sparqlQueryGenerator = new SPARQLQueryTemplateGenerator(rules.keySet());
+		SPARQLQueryTemplateGenerator sparqlQueryGenerator = new SPARQLQueryTemplateGenerator(ruleModel);
 		String question = "Give me the birthdays of all actors of the television_show Chirmed.";
 		question = "Who is the daughter of Bruce Willis married to?";
-		sparqlQueryGenerator.generateSPARQLQuery(question);
+		Collection<Template> templates = sparqlQueryGenerator.generateSPARQLQueryTemplates(question);
+		for (Template template : templates) {
+			System.out.println(template);
+		}
 	}
 	
 	private void loadManualMapping(){
@@ -226,7 +221,7 @@ public class QALD2TrainTest {
 				id2QuestionMap.put(id, question);
 				id2SPARQLQueryMap.put(id, query);
 				trainData.put(id, question, query);
-				if(trainData.size() == maxNrOfTrainQueries) break;
+//				if(trainData.size() == maxNrOfTrainQueries) break;
 			}
 		} catch (DOMException e) {
 			e.printStackTrace();

@@ -1,4 +1,4 @@
-package org.aksw.dependency;
+package org.aksw.dependency.rule;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,6 +14,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -31,20 +32,17 @@ import org.aksw.dependency.graph.ColoredEdge;
 import org.aksw.dependency.graph.DependencyGraphGenerator;
 import org.aksw.dependency.graph.Node;
 import org.aksw.dependency.graph.PropertyNode;
+import org.aksw.dependency.rule.clustering.OptimizedRuleClustering;
+import org.aksw.dependency.rule.clustering.RuleClustering;
 import org.aksw.dependency.util.Generalization;
 import org.aksw.dependency.util.GraphUtils;
 import org.aksw.dependency.util.ManualMapping;
-import org.aksw.dependency.util.MapUtils;
 import org.aksw.dependency.util.Matcher;
-import org.aksw.dependency.util.SimPackGraphWrapper;
 import org.aksw.dependency.util.StableMarriage;
 import org.apache.log4j.Logger;
 
-import simpack.measure.graph.GraphIsomorphism;
-
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Table;
 import com.google.common.collect.Table.Cell;
 import com.google.common.hash.HashFunction;
@@ -83,7 +81,7 @@ public class RuleGenerator {
 		return directedGraph;
 	}
 	
-	public Collection<Rule> computeMappingRules(String question, String queryString){
+	public Map<String, Collection<Rule>> computeMappingRules(String question, String queryString){
 		return computeMappingRules(question, queryString, new HashMap<String, String>());
 	}
 	
@@ -132,12 +130,13 @@ public class RuleGenerator {
 		}
 	}
 	
-	public Collection<Rule> computeMappingRules(String question, String queryString, Map<String, String> manualMapping){
+	public Map<String, Collection<Rule>> computeMappingRules(String question, String queryString, Map<String, String> manualMapping){
 		//try to read the rules from cache
 		Collection<Rule> learnedRules = readFromDisk(question, queryString);
 		
 		if(learnedRules == null){
-			learnedRules = new HashSet<Rule>();
+			logger.info("Computing rules for \"" + question + "\"");
+			learnedRules = new HashSet<>();
 			//generate the directed graph for the dependencies of the question
 			DependencyGraphGenerator dependencyGraphGenerator = new DependencyGraphGenerator();
 			ColoredDirectedGraph graph1 = dependencyGraphGenerator.generateDependencyGraph(question);
@@ -171,7 +170,6 @@ public class RuleGenerator {
 					iter.remove();
 				}
 			}
-			System.out.println(graph2);
 			
 			// expand the subgraphs such that complete triple patterns are contained
 			for (ColoredDirectedSubgraph subGraph : subgraphs2) {
@@ -202,6 +200,8 @@ public class RuleGenerator {
 					System.out.println(e);
 				}
 			}
+			//has to be done because the hashcodes are not updated after modifiying the graphs
+			subgraphs2 = new HashSet<>(subgraphs2);
 			
 			//find the mappings between nodes in dependency graph and SPARQL query graph, if exist
 			//we start from the URIs in the SPARQL query and try to find the corresponding token in the question, makes more sense
@@ -232,7 +232,7 @@ public class RuleGenerator {
 //			}
 //			
 //			//1. we only match graphs g1 to graphs g2 if for each source node n_s in g1 there exists the corresponding target node n_t in g2 and vice versa
-			outer: for(ColoredDirectedSubgraph sub1 : subgraphs1){
+			for(ColoredDirectedSubgraph sub1 : subgraphs1){
 				for(ColoredDirectedSubgraph sub2 : subgraphs2){
 					boolean candidate = true;
 					Map<Node, Node> mapping = new HashMap<Node, Node>();
@@ -263,141 +263,17 @@ public class RuleGenerator {
 						for(Entry<Node, Node> entry : mapping.entrySet()){
 							generalizedMapping.put(gen1.getMapping().get(entry.getKey()), gen2.getMapping().get(entry.getValue()));
 						}
-//						for(Node n : generalizedMapping.values()){n.setLabel("TEST");}
-//						System.out.println("Gen Mapping: " + generalizedMapping);
-//						System.out.println("Gen graph: " + gen2.getGeneralizedGraph());
+//						
 						learnedRules.add(new Rule(gen1.getGeneralizedGraph(), gen2.getGeneralizedGraph(), generalizedMapping));
-//						if(learnedRules.size() == 10) break outer;
 					}
 				}
 			}
 			writeToDisk(learnedRules, question, queryString);
 		}
 		
-		return learnedRules;
-	}
-	
-	private Map<Rule, Integer> clusterRules(Collection<Rule> rules){
-		Map<Rule, Integer> rule2Frequency = new HashMap<Rule, Integer>();
-		for(Rule rule : rules){
-			int cnt = 0;
-			Rule r = null;
-			for(Entry<Rule, Integer> entry : rule2Frequency.entrySet()){
-				ColoredDirectedGraph currentGraph = rule.asConnectedGraph();
-				ColoredDirectedGraph graph = entry.getKey().asConnectedGraph();
-				
-				boolean sameNodeSet = containSameNodes(currentGraph, graph);
-				if(!sameNodeSet){
-					continue;
-				}
-				
-				if((currentGraph.edgeSet().size() != graph.edgeSet().size())){
-					continue;
-				}
-				
-//				GraphIsomorphismInspector<ColoredDirectedGraph> iso = AdaptiveIsomorphismInspectorFactory.
-//						createIsomorphismInspector(currentGraph, graph, null, null);
-//				System.out.println(iso.isIsomorphic());
-				
-				GraphIsomorphism gi = new GraphIsomorphism(SimPackGraphWrapper.getGraph(currentGraph), SimPackGraphWrapper.getGraph(graph));
-				gi.calculate();
-		        r = null;
-		        if(gi.getGraphIsomorphism() == 1){
-		        	cnt = entry.getValue()+1;
-		        	r = entry.getKey();
-		        	break;
-		        }
-			}
-			if(cnt > 1){
-				if(r != null){
-					rule2Frequency.remove(r);
-				}
-				rule2Frequency.put(rule, Integer.valueOf(cnt));
-			} else {
-				rule2Frequency.put(rule, Integer.valueOf(1));
-			}
-			
-		}
-		return rule2Frequency;
-	}
-	
-	private Map<Rule, Integer> computeRuleFrequency(Map<Rule, Integer> rules){
-		return computeRuleFrequency(rules, new HashMap<Rule, Integer>());
-	}
-	
-	private Map<Rule, Integer> computeRuleFrequency(Map<Rule, Integer> rules1, Map<Rule, Integer> merge){
-		for (Entry<Rule, Integer> entry1 : rules1.entrySet()) {
-			Rule rule1 = entry1.getKey();
-			Integer frequency1 = entry1.getValue();
-			
-			int totalFrequency = frequency1;
-			Rule rule = null;
-			for (Entry<Rule, Integer> entry2 : merge.entrySet()) {
-				rule = null;
-				Rule rule2 = entry2.getKey();
-				Integer frequency2 = entry2.getValue();
-				
-				ColoredDirectedGraph graph1 = rule1.asConnectedGraph();
-				ColoredDirectedGraph graph2 = rule2.asConnectedGraph();
-				
-				boolean sameNodeSet = containSameNodes(graph1, graph2);
-				if(!sameNodeSet){
-					continue;
-				}
-				
-				if((graph1.edgeSet().size() != graph2.edgeSet().size())){
-					continue;
-				}
-				
-				GraphIsomorphism gi = new GraphIsomorphism(SimPackGraphWrapper.getGraph(graph1), SimPackGraphWrapper.getGraph(graph2));
-				gi.calculate();
-				
-		        if(gi.getGraphIsomorphism() == 1){
-//		        	logger.trace("ISOMORPH:\n" + entry.getKey() + "\n" + rule.getSource());
-		        	totalFrequency = frequency1 + frequency2;
-		        	rule = rule2;
-		        	break;
-		        }
-			}
-			if(rule != null){
-				merge.put(rule, totalFrequency);
-			} else {
-				merge.put(rule1, frequency1);
-			}
-		}
-		return merge;
-	}
-	
-	private boolean containSameNodes(ColoredDirectedGraph g1, ColoredDirectedGraph g2){
-		if(g1.vertexSet().size() != g2.vertexSet().size()){
-			return false;
-		}
-		for(Node n1 : g1.vertexSet()){
-			boolean match = false;
-			for(Node n2 : g2.vertexSet()){
-				if(n1.getLabel().equals(n2.getLabel())){
-					match = true;
-					break;
-				}
-			}
-			if(!match){
-				return false;
-			}
-		}
-		for(Node n2 : g2.vertexSet()){
-			boolean match = false;
-			for(Node n1 : g1.vertexSet()){
-				if(n1.getLabel().equals(n2.getLabel())){
-					match = true;
-					break;
-				}
-			}
-			if(!match){
-				return false;
-			}
-		}
-		
-		return true;
+		Map<String, Collection<Rule>> result = new HashMap<>();
+		result.put(question, learnedRules);
+		return result;
 	}
 	
 	private String getLabel(URI uri){
@@ -415,24 +291,18 @@ public class RuleGenerator {
         return uri.toString();
 	}
 	
-	public Map<Rule, Integer> learn(Table<Integer, String, String> trainData, ManualMapping manualMapping) {
-		this.trainData = trainData;
-		this.manualMapping = manualMapping;
-		
-		Set<Rule> rules = new HashSet<Rule>();
-		ExecutorService threadPool = Executors.newFixedThreadPool(4);//Runtime.getRuntime().availableProcessors());
-		List<Future<Collection<Rule>>> futures = new ArrayList<Future<Collection<Rule>>>();
+	private Map<String, Collection<Rule>> generateRules() {
+		logger.info("Generating rules...");
+		Map<String, Collection<Rule>> rules = new LinkedHashMap<>();
+		ExecutorService threadPool = Executors.newFixedThreadPool(1);//Runtime.getRuntime().availableProcessors());
+		List<Future<Map<String, Collection<Rule>>>> futures = new ArrayList<Future<Map<String, Collection<Rule>>>>();
 
 		for (Cell<Integer, String, String> row : trainData.cellSet()){
 			currentQueryId = row.getRowKey();
+			
 			int id = currentQueryId;
-//			if(id<=2)continue;if(id==72)continue;
 			final String question = row.getColumnKey();
 			final String sparqlQuery = row.getValue();
-			Query query = QueryFactory.create(sparqlQuery, Syntax.syntaxARQ);
-			if(!query.isSelectType()){
-				continue;
-			}
 			
 			final Map<String, String> mapping;
 			if(manualMapping == null){
@@ -444,23 +314,18 @@ public class RuleGenerator {
 					mapping = new HashMap<String, String>();
 				}
 			}
-
-			logger.info("###################\t" + id + "\t############################");
-//			Collection<Rule> learnedRules = computeMappingRules(question, sparqlQuery, mapping);
-//			rules.addAll(learnedRules);
-			futures.add(threadPool.submit(new Callable<Collection<Rule>>() {
+			futures.add(threadPool.submit(new Callable<Map<String, Collection<Rule>>>() {
 
 				@Override
-				public Collection<Rule> call() throws Exception {
+				public Map<String, Collection<Rule>> call() throws Exception {
 					return computeMappingRules(question, sparqlQuery, mapping);
 				}
 			}));
 		
-//			break;
 		}
-		for (Future<Collection<Rule>> future : futures) {
+		for (Future<Map<String, Collection<Rule>>> future : futures) {
 			try {
-				rules.addAll(future.get());
+				rules.putAll(future.get());
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			} catch (ExecutionException e) {
@@ -468,122 +333,39 @@ public class RuleGenerator {
 			}
 		}
 		threadPool.shutdown();
-		logger.info("Got " + rules.size() + " rules.");
-		Map<Rule, Integer> clusteredRules = clusterRules(rules);
+		Collection<Rule> allRules = new HashSet<>();
+		for (Collection<Rule> r : rules.values()) {
+			allRules.addAll(r);
+		}
+		logger.info("...got " + allRules.size() + " rules.");
+		return rules;
+	}
+	
+	public RuleModel generateRuleModel(Table<Integer, String, String> trainData, ManualMapping manualMapping){
+		this.trainData = trainData;
+		this.manualMapping = manualMapping;
 		
-		return clusteredRules;
+		//generate for each question a set of rules
+		Map<String, Collection<Rule>> rules = generateRules();
+		
+		//cluster the rules, i.e. generate cluster with frequency for rules which generalized form is equal
+		RuleClustering ruleClustering = new OptimizedRuleClustering();
+//		RuleClustering ruleClustering = new SimpleRuleClustering();
+		Map<Rule, Integer> clusteredRules = ruleClustering.clusterRules(rules);
+		
+		return new RuleModel(clusteredRules.keySet());
+	}
+	
+	public RuleModel generateRuleModel(Table<Integer, String, String> trainData, Map<Integer, BiMap<String, String>> manualMapping) {
+		return generateRuleModel(trainData, new ManualMapping(manualMapping));
 	}
 	
 	public static <K, V> void printTopKEntries(List<Entry<K, V>> entries, int k){
 		for(int i = 0; i < Math.min(k, entries.size()); i++){
-			logger.info(entries.get(i));
+			logger.info(entries.get(i).getValue());
 		}
 	}
 	
-	private void clusterRulesMultithreaded(Collection<Rule> rules){
-		int threadCount = 8;
-		ExecutorService threadPool = Executors.newFixedThreadPool(threadCount);
-		List<Rule> ruleList = Lists.newArrayList(rules);
-		List<List<Rule>> lists = Lists.partition(ruleList, ruleList.size()/threadCount+1);
-		List<Map<Rule, Integer>> mapList = new ArrayList<Map<Rule, Integer>>();
-		for(List<Rule> l : lists){
-			Map<Rule, Integer> map = new HashMap<Rule, Integer>();
-			for(Rule r : l){
-				map.put(r, 1);
-			}
-			mapList.add(map);
-		}
-		List<Future<Map<Rule, Integer>>> futureList = new ArrayList<Future<Map<Rule, Integer>>>();
-		for (final Map<Rule, Integer> partition : mapList) {
-			futureList.add(threadPool.submit(new Callable<Map<Rule, Integer>>() {
-
-				@Override
-				public Map<Rule, Integer> call() throws Exception {
-					return computeRuleFrequency(partition);
-				}
-			}));
-		}
-		mapList.clear();
-		for (Future<Map<Rule, Integer>> future : futureList) {
-			try {
-				Map<Rule, Integer> result = future.get();
-				mapList.add(result);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			} catch (ExecutionException e) {
-				e.printStackTrace();
-			}
-		}
-		futureList.clear();
-		while(mapList.size() > 1){
-			for(int fromIndex = 0; fromIndex < mapList.size(); fromIndex+=2){
-				final List<Map<Rule, Integer>> sub = mapList.subList(fromIndex, Math.min(fromIndex+2, mapList.size()));
-				futureList.add(threadPool.submit(new Callable<Map<Rule, Integer>>() {
-					@Override
-					public Map<Rule, Integer> call() throws Exception {
-						if(sub.size() == 2){
-							return computeRuleFrequency(sub.get(0), sub.get(1));
-						} else {
-							return sub.get(0);
-						}
-						
-					}
-				}));
-			}
-//			List<List<Map<Rule, Integer>>> partitionList = Lists.partition(new ArrayList<Map<Rule, Integer>>(mapList), 2);
-//			for (final List<Map<Rule, Integer>> partition : partitionList) {
-//				futureList.add(threadPool.submit(new Callable<Map<Rule, Integer>>() {
-//
-//					@Override
-//					public Map<Rule, Integer> call() throws Exception {
-//						if(partition.size() == 2){
-//							System.out.println("Calling:" + partition.get(0).hashCode() + "--" + partition.get(1).hashCode());
-//							return computeRuleFrequency(partition.get(0), partition.get(1));
-//						} else {
-//							return partition.get(0);
-//						}
-//						
-//					}
-//				}));
-//			}
-			List<Map<Rule, Integer>> tmp = new ArrayList<Map<Rule,Integer>>();
-			for (Future<Map<Rule, Integer>> future : futureList) {
-				try {
-					Map<Rule, Integer> result = future.get();
-					tmp.add(result);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				} catch (ExecutionException e) {
-					e.printStackTrace();
-				}
-			}
-			mapList.clear();
-			mapList.addAll(tmp);
-			futureList.clear();
-		}
-		List<Entry<Rule, Integer>> sorted = MapUtils.sortByValues(mapList.get(0));
-	}
 	
-	public Map<Rule, Integer> generateRules(Table<Integer, String, String> trainData, Map<Integer, BiMap<String, String>> manualMapping) {
-		return learn(trainData, new ManualMapping(manualMapping));
-	}
 	
-
-	/**
-	 * Learn mapping rules from dependency trees to SPARQL queries.
-	 * @param trainData as table - row format: (id, question, SPARQL query)
-	 */
-	public Map<Rule, Integer> learn(Table<Integer, String, String> trainData) {
-		return learn(trainData, (ManualMapping)null);
-	}
-	
-	public Map<Rule, Integer> learn(String question, String sparqlQuery, Map<Integer, BiMap<String, String>> manualMapping) {
-		Table<Integer, String, String> trainData = HashBasedTable.create();
-		trainData.put(1, question, sparqlQuery);
-		return learn(trainData, new ManualMapping(manualMapping));
-	}
-	
-	public Map<Rule, Integer> learn(String question, String sparqlQuery) {
-		return learn(question, sparqlQuery, null);
-	}
 }

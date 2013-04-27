@@ -1,7 +1,13 @@
 package org.aksw.dependency.graph;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+
+import edu.stanford.nlp.ling.IndexedWord;
+import edu.stanford.nlp.trees.semgraph.SemanticGraph;
+import edu.stanford.nlp.trees.semgraph.SemanticGraphEdge;
 
 public class DependencyGraph extends ColoredDirectedGraph{
 	
@@ -34,5 +40,4 @@ public class DependencyGraph extends ColoredDirectedGraph{
 		
 		return graph;
 	};
-
 }
