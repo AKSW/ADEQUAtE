@@ -294,7 +294,7 @@ public class RuleGenerator {
 	private Map<String, Collection<Rule>> generateRules() {
 		logger.info("Generating rules...");
 		Map<String, Collection<Rule>> rules = new LinkedHashMap<>();
-		ExecutorService threadPool = Executors.newFixedThreadPool(1);//Runtime.getRuntime().availableProcessors());
+		ExecutorService threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 		List<Future<Map<String, Collection<Rule>>>> futures = new ArrayList<Future<Map<String, Collection<Rule>>>>();
 
 		for (Cell<Integer, String, String> row : trainData.cellSet()){

@@ -23,19 +23,9 @@ public class SimpleRuleClustering implements RuleClustering {
 
 	@Override
 	public Map<Rule, Integer> clusterRules(Collection<Rule> rules) {
-		return null;
-	}
-	
-	@Override
-	public Map<Rule, Integer> clusterRules(Map<String, Collection<Rule>> questionWithRules) {
 		logger.info("Clustering rules...");
 		Map<Rule, Integer> rule2Frequency = new HashMap<Rule, Integer>();
-		Set<Rule> allRules = new HashSet<>();
-		
-		for (Collection<Rule> entry : questionWithRules.values()) {
-			allRules.addAll(entry);
-		}
-		for(Rule rule : allRules){
+		for(Rule rule : rules){
 			int cnt = 0;
 			Rule r = null;
 			for(Entry<Rule, Integer> entry : rule2Frequency.entrySet()){
@@ -76,6 +66,15 @@ public class SimpleRuleClustering implements RuleClustering {
 		}
 		logger.info("...got " + rule2Frequency.size() + " clusters.");
 		return rule2Frequency;
+	}
+	
+	@Override
+	public Map<Rule, Integer> clusterRules(Map<String, Collection<Rule>> questionWithRules) {
+		Set<Rule> allRules = new HashSet<>();
+		for (Collection<Rule> entry : questionWithRules.values()) {
+			allRules.addAll(entry);
+		}
+		return clusterRules(allRules);
 	}
 	
 	private boolean equalRules(Rule rule1, Rule rule2){

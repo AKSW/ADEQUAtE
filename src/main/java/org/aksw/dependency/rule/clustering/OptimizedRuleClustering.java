@@ -13,7 +13,6 @@ import org.aksw.dependency.graph.Node;
 import org.aksw.dependency.rule.Rule;
 import org.aksw.dependency.util.SimPackGraphWrapper;
 import org.apache.log4j.Logger;
-import org.hamcrest.core.IsSame;
 import org.jgrapht.experimental.isomorphism.AdaptiveIsomorphismInspectorFactory;
 import org.jgrapht.experimental.isomorphism.GraphIsomorphismInspector;
 
@@ -26,19 +25,9 @@ public class OptimizedRuleClustering implements RuleClustering {
 
 	@Override
 	public Map<Rule, Integer> clusterRules(Collection<Rule> rules) {
-		return null;
-	}
-	
-	@Override
-	public Map<Rule, Integer> clusterRules(Map<String, Collection<Rule>> questionWithRules) {
 		logger.info("Clustering rules...");
 		Map<Rule, Integer> rule2Frequency = new HashMap<Rule, Integer>();
-		Set<Rule> allRules = new HashSet<>();
-		
-		for (Collection<Rule> entry : questionWithRules.values()) {
-			allRules.addAll(entry);
-		}
-		for(Rule rule1 : allRules){
+		for(Rule rule1 : rules){
 			int cnt = 0;
 			Rule r = null;
 			for(Entry<Rule, Integer> entry : rule2Frequency.entrySet()){
@@ -65,6 +54,15 @@ public class OptimizedRuleClustering implements RuleClustering {
 		}
 		logger.info("...got " + rule2Frequency.size() + " clusters.");
 		return rule2Frequency;
+	}
+	
+	@Override
+	public Map<Rule, Integer> clusterRules(Map<String, Collection<Rule>> questionWithRules) {
+		Set<Rule> allRules = new HashSet<>();
+		for (Collection<Rule> entry : questionWithRules.values()) {
+			allRules.addAll(entry);
+		}
+		return clusterRules(allRules);
 	}
 	
 	private boolean equalRules(Rule rule1, Rule rule2){
@@ -99,20 +97,20 @@ public class OptimizedRuleClustering implements RuleClustering {
 	}
 	
 	private boolean isomorphic(ColoredDirectedGraph graph1, ColoredDirectedGraph graph2){
-		GraphIsomorphism gi = new GraphIsomorphism(SimPackGraphWrapper.getGraph(graph1), SimPackGraphWrapper.getGraph(graph2));
-		gi.calculate();
-		return gi.getGraphIsomorphism() == 1;
-//		GraphIsomorphismInspector iso =
-//	            AdaptiveIsomorphismInspectorFactory.createIsomorphismInspector(
-//	            		graph1,
-//	            		graph2,
-//	                null,
-//	                null);
-//		long start = System.currentTimeMillis();
-//		boolean isomorphic = iso.isIsomorphic();
-//		long end = System.currentTimeMillis();
-////		System.out.println("Operation took " + (end - start) + "ms");
-//		return isomorphic;
+//		GraphIsomorphism gi = new GraphIsomorphism(SimPackGraphWrapper.getGraph(graph1), SimPackGraphWrapper.getGraph(graph2));
+//		gi.calculate();
+//		return gi.getGraphIsomorphism() == 1;
+		GraphIsomorphismInspector iso =
+	            AdaptiveIsomorphismInspectorFactory.createIsomorphismInspector(
+	            		graph1,
+	            		graph2,
+	                null,
+	                null);
+		long start = System.currentTimeMillis();
+		boolean isomorphic = iso.isIsomorphic();
+		long end = System.currentTimeMillis();
+//		System.out.println("Operation took " + (end - start) + "ms");
+		return isomorphic;
 	}
 	
 	private boolean containSameNodes(ColoredDirectedGraph g1, ColoredDirectedGraph g2){

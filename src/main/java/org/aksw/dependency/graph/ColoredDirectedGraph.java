@@ -1,7 +1,11 @@
 package org.aksw.dependency.graph;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.aksw.dependency.util.SimpleGraphFormatter;
 import org.jgrapht.graph.DefaultDirectedGraph;
@@ -80,6 +84,40 @@ public class ColoredDirectedGraph extends DefaultDirectedGraph<Node, ColoredEdge
 	
 	public String prettyPrint(){
 		return formatter.formatGraph(this);
+	}
+	
+	public static ColoredDirectedGraph parse(String nodesAsString, String edgesAsString){
+		ColoredDirectedGraph g = new ColoredDirectedGraph();
+		//parse nodes
+		Map<String, Node> id2Node = new HashMap<>();
+		String[] nodes = nodesAsString.split(",");
+		for (String nodeId : nodes) {
+			String id = nodeId;
+			Node node;
+			if(nodeId.contains("(")){
+				id = nodeId.substring(0, nodeId.indexOf('('));
+				String label = "";
+				Pattern p = Pattern.compile("(\\()(.*?)(\\))");
+				Matcher m = p.matcher(nodeId);
+				while (m.find()) {
+				  label = m.group(2);
+				}
+				node = new Node(id, label);
+			} else {
+				node = new Node(nodeId);
+			}
+			id2Node.put(id, node);
+			g.addVertex(node);
+		}
+		//parse edges
+		String[] edges = edgesAsString.split("\\)");
+		for (String edge : edges) {
+			String[] edgeNodes = edge.replace("(", "").replace(")", "").split(",");
+			Node source = id2Node.get(edgeNodes[0]);
+			Node target = id2Node.get(edgeNodes[1]);
+			g.addEdge(source, target, new ColoredEdge("edge", "white"));
+		}
+		return g;
 	}
 
 }

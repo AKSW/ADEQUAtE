@@ -79,6 +79,12 @@ public class SPARQLQueryTemplateGenerator {
 		return generateSPARQLQueryTemplates(dependencyGraph);
 	}
 	
+	public Collection<Template> generateSPARQLQueryTemplates(SemanticGraph semanticGraph){
+		DependencyGraphGenerator dependencyGraphGenerator = new DependencyGraphGenerator();	
+		ColoredDirectedGraph dependencyGraph = dependencyGraphGenerator.generateDependencyGraph(semanticGraph).toGeneralizedGraph();
+		return generateSPARQLQueryTemplates(dependencyGraph);
+	}
+	
 	public Collection<Template> generateSPARQLQueryTemplates(ColoredDirectedGraph dependencyGraph){
 		reset();
 		

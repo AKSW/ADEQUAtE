@@ -1,5 +1,7 @@
 package org.aksw.dependency.graph;
 
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -26,14 +28,22 @@ import edu.stanford.nlp.util.CoreMap;
 public class DependencyGraphGenerator {
 	
 	private static final Logger logger = Logger.getLogger(DependencyGraphGenerator.class.getName());
+	
+	public ColoredDirectedGraph generateDependencyGraph(SemanticGraph semanticGraph) {
+		// convert dependency tree to directed graph
+		DependencyTree2GraphConverter dependencyConverter = new DependencyTree2GraphConverter();
+		ColoredDirectedGraph directedGraph = dependencyConverter.getGraph(semanticGraph, true);
+
+		return directedGraph;
+	}
 
 	public ColoredDirectedGraph generateDependencyGraph(String question, boolean collapseNounPhrases,
 			boolean omitUnimportantNodes) {
-//		try {
-//			System.setErr(new PrintStream("/dev/null"));
-//		} catch (FileNotFoundException e) {
-//			e.printStackTrace();
-//		}
+		try {
+			System.setErr(new PrintStream("/dev/null"));
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
 		// in a preprocessing step we have to check for noun phrases and combine
 		// then, otherwise the dependency graph will be useless
 		logger.debug("Original Question: " + question);

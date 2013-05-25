@@ -1,6 +1,7 @@
 package org.aksw.dependency.rule;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -65,6 +66,18 @@ public class Rule implements Serializable{
 		return "Rule:\nSource:\t" + source.dump() + "\nTarget:\t" + target.dump() + "\nMapping:\t" + mapping;
             else
                 return "Rule "+label+":\nSource:\t" + source + "\nTarget:\t" + target + "\nMapping:\t" + mapping;
+	}
+	
+	public static Rule parse(ColoredDirectedGraph sourceGraph, ColoredDirectedGraph targetGraph, String mappingString){
+		Map<Node, Node> mapping = new HashMap<>();
+		String[] edges = mappingString.split("\\)");
+		for (String edge : edges) {
+			String[] edgeNodes = edge.replace("(", "").replace(")", "").split(",");
+			Node source = new Node(edgeNodes[0]);
+			Node target = new Node(edgeNodes[1]);
+			mapping.put(source, target);
+		}
+		return new Rule(sourceGraph, targetGraph, mapping);
 	}
 	
 

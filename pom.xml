@@ -105,5 +105,16 @@
 			<version>4.11</version>
 		</dependency>
 
+		<dependency>
+			<groupId>org.aksw</groupId>
+			<artifactId>qa-commons</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.aksw</groupId>
+			<artifactId>qa-tbsl</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+
 	</dependencies>
 </project>
